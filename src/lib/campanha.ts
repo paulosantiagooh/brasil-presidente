@@ -150,6 +150,7 @@ export type Campanha = {
   perguntasFeitas: string[];
   eventosRegionais: { uf: string; semana: number; titulo: string }[];
   debate: Debate | null;
+  pessoaReal?: boolean;
 };
 
 const limitar = (valor: number, minimo = 0, maximo = 100) =>
@@ -279,6 +280,7 @@ export function criarCampanha(id: string, candidato: Candidato, dificuldade: Dif
     perguntasFeitas: [],
     eventosRegionais: [],
     debate: null,
+    pessoaReal: Boolean(candidato.pessoaReal),
   };
   c.rivais = escolherRivais(c, candidato, Boolean(reeleicao));
 
@@ -594,11 +596,18 @@ function sortearEvento(c: Campanha): Evento {
   const regional = (titulo: string) => c.eventosRegionais.push({ uf, semana: c.semana, titulo });
 
   const eventos: Evento[] = [
-    {
-      titulo: "Denúncia contra a sua campanha",
-      texto: "Uma reportagem questiona doadores da campanha. Credibilidade −4, imprensa −3.",
-      aplicar: (x) => aplicarEfeito(x, { credibilidade: -4, imprensa: -3 }),
-    },
+    // Com um político real, o jogo não inventa denúncia: a semana só é fraca.
+    c.pessoaReal
+      ? {
+          titulo: "Semana difícil para a sua campanha",
+          texto: "Na simulação, a campanha perde espaço no noticiário. Imprensa −3.",
+          aplicar: (x) => aplicarEfeito(x, { imprensa: -3 }),
+        }
+      : {
+          titulo: "Denúncia contra a sua campanha",
+          texto: "Uma reportagem questiona doadores da campanha. Credibilidade −4, imprensa −3.",
+          aplicar: (x) => aplicarEfeito(x, { credibilidade: -4, imprensa: -3 }),
+        },
     {
       titulo: "Vídeo seu viraliza",
       texto: "Um trecho de discurso se espalha pelas redes. Popularidade +3.",

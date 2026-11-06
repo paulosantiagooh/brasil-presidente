@@ -108,7 +108,7 @@ export const AREAS = [
 export const NOME_NIVEL = ["", "Mínima", "Reduzida", "Intermediária", "Elevada", "Máxima planejada"];
 
 // Valores ilustrativos do jogo, em R$ bilhões.
-export const TETO_ORCAMENTO = AREAS.reduce((soma, area) => soma + area.custo * 3, 0);
+export const TETO_ORCAMENTO = Math.round(AREAS.reduce((soma, area) => soma + area.custo * 3, 0) * 1.25);
 
 type EfeitoGoverno = { aprovacao?: number; credibilidade?: number; governabilidade?: number };
 
@@ -514,7 +514,7 @@ export function calcularBalanco(g: Governo, c: Candidato, eleicao: Eleicao): Bal
   const folga = Math.max(0, TETO_ORCAMENTO - custoDoOrcamento(g));
   const balanco = {
     aprovacao: 42 + (votos - 50) * 0.5 + media("popularidade") * 0.08,
-    credibilidade: 35 + media("confiabilidade") * 0.3 - excesso * 0.2 + folga * 0.1,
+    credibilidade: 35 + media("confiabilidade") * 0.3 - excesso * 0.2 + Math.min(folga, 80) * 0.05,
     governabilidade: (resumo.provaveis.deputados / DEPUTADOS) * 100,
     gestao: media("competencia") * 0.6 + media("eficiencia") * 0.4,
   };

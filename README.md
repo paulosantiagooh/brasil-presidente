@@ -8,7 +8,7 @@ Simulador político e de administração pública. O jogador disputa a eleição
 
 ## Estado atual
 
-Etapas 1 a 6 do plano: criação do candidato, campanha de cinco semanas, eleição em dois turnos, formação do governo e um mandato jogável de 48 meses, com medidas escritas pelo jogador, negociação e votação no Congresso, economia, orçamento, sociedade, segurança, obras, estatais, instituições, diplomacia, eventos, relatórios e balanço final. Há reeleição em 2030, segundo mandato até 2034, impeachment e reforma ministerial. O jogo pode ser instalado pelo navegador, e as partidas podem ser exportadas e importadas. Faltam contas com sincronização automática e os aplicativos nas lojas.
+Etapas 1 a 6 do plano: criação do candidato, campanha de cinco semanas, eleição em dois turnos, formação do governo e um mandato jogável de 48 meses, com medidas escritas pelo jogador, negociação e votação no Congresso, economia, orçamento, sociedade, segurança, obras, estatais, instituições, diplomacia, eventos, relatórios e balanço final. Há reeleição em 2030, segundo mandato até 2034, impeachment, reforma ministerial, Congresso em 3D e a opção de jogar com um político real. O jogo pode ser instalado pelo navegador, e as partidas podem ser exportadas e importadas. Faltam contas com sincronização automática e os aplicativos nas lojas.
 
 O documento completo do projeto está em [docs/PROJETO.md](docs/PROJETO.md).
 

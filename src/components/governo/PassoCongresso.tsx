@@ -1,6 +1,7 @@
 "use client";
 
 import type { Candidato } from "@/lib/candidato";
+import { Congresso3D } from "../congresso/Congresso3D";
 import {
   DEPUTADOS,
   NOME_POSICAO,
@@ -73,6 +74,7 @@ export function PassoCongresso({ governo, candidato }: { governo: Governo; candi
       <p className="ajuda">
         Bancadas reais eleitas em 2026, com a projeção do Senado para 2027. O apoio não é automático. Para mudar a base, volte aos ministérios.
       </p>
+      <Congresso3D partidos={resumo.partidos} />
       <div className="plenarios">
         <Plenario titulo="Câmara dos Deputados" total={DEPUTADOS} contagem={resumo.deputados} />
         <Plenario titulo="Senado Federal" total={SENADORES} contagem={resumo.senadores} />

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import {
+  CANDIDATO_VAZIO,
   CARGOS,
+  dadosDaPessoaReal,
   distanciaDoPartido,
   EXPERIENCIAS,
   HISTORICOS,
@@ -17,7 +19,7 @@ import {
   viceDoCandidato,
   type Candidato,
 } from "@/lib/candidato";
-import { POLITICOS, semAcento } from "@/lib/pessoas";
+import { politicoPorId, POLITICOS, semAcento } from "@/lib/pessoas";
 import { BuscaPessoa } from "../BuscaPessoa";
 import { CampoFoto } from "./CampoFoto";
 import { Campo, Cartao, Eixo, Selecao } from "./Campos";
@@ -28,8 +30,36 @@ type Props = {
 };
 
 export function PassoIdentidade({ c, mudar }: Props) {
+  const real = politicoPorId(c.pessoaReal);
+  if (real) {
+    return (
+      <div className="formulario">
+        <p className="alerta">
+          Você vai jogar como <strong>{real.nome}</strong> ({real.sigla} · {real.uf}). {real.cargo}
+        </p>
+        <p className="ajuda">
+          A ficha já vem preenchida com dados públicos, e você pode ajustar partido, ideologia e trajetória
+          nos próximos passos. Tudo o que acontecer na partida é ficção. O jogo não usa foto de pessoas reais.
+        </p>
+        <button
+          type="button"
+          className="botao"
+          onClick={() => mudar({ ...CANDIDATO_VAZIO, passo: 0 })}
+        >
+          Escolher outra pessoa ou criar um candidato
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="formulario">
+      <details className="bloco">
+        <summary>Jogar com um político real</summary>
+        <p className="ajuda">
+          Escolha entre 628 nomes. A partida é uma história alternativa, sem relação com fatos reais.
+        </p>
+        <BuscaPessoa pessoas={POLITICOS} aoEscolher={(pessoa) => mudar(dadosDaPessoaReal(pessoa))} />
+      </details>
       <CampoFoto
         rotulo="Fotografia do candidato"
         foto={c.foto}
@@ -233,7 +263,7 @@ export function PassoTrajetoria({ c, mudar }: Props) {
         rotulo="Cargo mais alto da carreira"
         vazio="Escolha"
         valor={c.cargo}
-        opcoes={CARGOS}
+        opcoes={CARGOS.filter((cargo) => cargo.id !== "presidencia" || c.cargo === "presidencia")}
         aoMudar={(cargo) => mudar({ cargo })}
       />
       <div className="duas-colunas">

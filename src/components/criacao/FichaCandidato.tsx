@@ -11,6 +11,15 @@ import {
   type Candidato,
 } from "@/lib/candidato";
 
+function iniciais(nome: string) {
+  return nome
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte[0])
+    .join("")
+    .toUpperCase();
+}
+
 function nomeDe(lista: { id: string; nome: string }[], id: string | null) {
   return lista.find((item) => item.id === id)?.nome ?? "";
 }
@@ -23,13 +32,16 @@ export function FichaCandidato({ c }: { c: Candidato }) {
   return (
     <article className="ficha">
       <header className="ficha-topo">
-        <div className="foto">{c.foto && <img src={c.foto} alt={`Foto de ${c.nomeUrna}`} />}</div>
+        <div className="foto foto-iniciais">
+          {c.foto ? <img src={c.foto} alt={`Foto de ${c.nomeUrna}`} /> : iniciais(c.nomeUrna)}
+        </div>
         <div className="ficha-nome">
           {partido && <p className="ficha-numero">{partido.numero}</p>}
           <h2>{c.nomeUrna}</h2>
           <p>{c.nomeCompleto}</p>
           <p className="dado">
-            {c.idade} anos · {c.uf}
+            {c.idade ? `${c.idade} anos · ` : ""}
+            {c.uf}
           </p>
         </div>
       </header>

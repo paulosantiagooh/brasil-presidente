@@ -1,4 +1,4 @@
-import { politicoPorId, type TipoPessoa } from "./pessoas";
+import { politicoPorId, type Pessoa, type TipoPessoa } from "./pessoas";
 
 export const UFS = [
   "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA",
@@ -101,6 +101,7 @@ export const CARGOS: Opcao[] = [
   { id: "senado", nome: "Senado Federal", efeito: { reconhecimento: 60, credibilidade: 55, gestao: 40, articulacao: 70 } },
   { id: "governo-estadual", nome: "Governo estadual", efeito: { reconhecimento: 70, credibilidade: 55, gestao: 70, articulacao: 60 } },
   { id: "ministerio", nome: "Ministério", efeito: { reconhecimento: 55, credibilidade: 60, gestao: 65, articulacao: 55 } },
+  { id: "presidencia", nome: "Presidência da República", efeito: { reconhecimento: 85, credibilidade: 55, gestao: 65, articulacao: 65 } },
 ];
 
 export const EXPERIENCIAS: Opcao[] = [
@@ -128,6 +129,7 @@ const EFEITO_VICE: Record<TipoPessoa, Partial<Atributos>> = {
 
 export type Candidato = {
   passo: number;
+  pessoaReal: string | null;
   nomeCompleto: string;
   nomeUrna: string;
   idade: string;
@@ -154,6 +156,7 @@ export type Candidato = {
 
 export const CANDIDATO_VAZIO: Candidato = {
   passo: 0,
+  pessoaReal: null,
   nomeCompleto: "",
   nomeUrna: "",
   idade: "",
@@ -225,6 +228,43 @@ const EFEITO_PARTIDO: Record<Tamanho, Partial<Atributos>> = {
   novo: { articulacao: -5, credibilidade: 5 },
 };
 
+const CARGO_POR_TIPO: Record<TipoPessoa, string> = {
+  governo: "governo-estadual",
+  senado: "senado",
+  deputado: "camara-deputados",
+  politico: "camara-deputados",
+  tecnico: "nenhum",
+};
+
+// Preenche a ficha com os dados públicos. A posição inicial vem do partido, e o jogador pode ajustar.
+export function dadosDaPessoaReal(pessoa: Pessoa): Partial<Candidato> {
+  const partido = PARTIDOS.find((p) => p.sigla === pessoa.sigla);
+  const economia = partido?.economia ?? 50;
+  const costumes = partido?.costumes ?? 50;
+  const presidencia = pessoa.id === "lula" || pessoa.id === "jair-bolsonaro";
+  return {
+    pessoaReal: pessoa.id,
+    nomeCompleto: pessoa.nome,
+    nomeUrna: pessoa.nome,
+    idade: "",
+    uf: pessoa.uf,
+    foto: null,
+    partidoSigla: partido?.sigla ?? null,
+    partidoProprio: false,
+    // O jogo não rotula a ideologia de uma pessoa real: quem escolhe é o jogador.
+    ideologia: null,
+    ideologiaSecundaria: null,
+    economia,
+    costumes,
+    cargo: presidencia ? "presidencia" : CARGO_POR_TIPO[pessoa.tipo],
+    experiencia: pessoa.tipo === "deputado" ? "publica-curta" : "publica-longa",
+    historico: "varias-vitorias",
+    biografia: `${pessoa.nome}. ${pessoa.cargo}`,
+    historiaPolitica: "",
+    viceId: null,
+  };
+}
+
 export function viceDoCandidato(c: Candidato) {
   return politicoPorId(c.viceId);
 }
@@ -263,7 +303,7 @@ export function calcularAtributos(c: Candidato): Atributos {
 
 export function errosDoPasso(c: Candidato, passo: number): string[] {
   const erros: string[] = [];
-  if (passo === 0) {
+  if (passo === 0 && !c.pessoaReal) {
     const idade = Number(c.idade);
     if (c.nomeCompleto.trim().split(/\s+/).length < 2) erros.push("Escreva o nome completo.");
     if (!c.nomeUrna.trim()) erros.push("Escreva o nome de urna.");

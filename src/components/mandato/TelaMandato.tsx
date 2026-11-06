@@ -302,7 +302,9 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
   const aprovados = mandato.indicados.filter((i) => i.aprovado);
   const segundo = mandato.limite > 48;
   const perdeu = reeleicao?.venceu === false;
-  const podeDisputar = !mandato.cassado && !segundo && !reeleicao;
+  // Lula já estaria no segundo mandato seguido: a Constituição não permite o terceiro.
+  const terceiroMandato = candidato.pessoaReal === "lula";
+  const podeDisputar = !mandato.cassado && !segundo && !reeleicao && !terceiroMandato;
 
   return (
     <section className="campanha" aria-labelledby="titulo-fim">
@@ -323,7 +325,9 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
             ? `${candidato.nomeUrna} completou oito anos de governo. A Constituição não permite um terceiro mandato seguido.`
             : perdeu
               ? `A candidatura à reeleição terminou com ${numero(reeleicao?.votos ?? 0)}% dos votos válidos.`
-              : "O país volta às urnas. A Constituição permite uma reeleição. Veja como você entrega o governo."}
+              : terceiroMandato
+                ? "Este seria o segundo mandato seguido, e a Constituição não permite um terceiro. A partida termina aqui."
+                : "O país volta às urnas. A Constituição permite uma reeleição. Veja como você entrega o governo."}
       </p>
       <dl className="placar">
         <div>

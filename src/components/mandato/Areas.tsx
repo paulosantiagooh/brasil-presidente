@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Campanha } from "@/lib/campanha";
 import { UFS } from "@/lib/candidato";
-import { AREAS, candidatosAoMinisterio, ministeriosAtivos, NOME_NIVEL, pessoaPorId, TETO_ORCAMENTO, type Ministerio, type Pessoa } from "@/lib/governo";
+import { AREAS, candidatosAoMinisterio, ministeriosAtivos, NOME_NIVEL, pessoaPorId, resumoDoCongresso, TETO_ORCAMENTO, type Ministerio, type Pessoa } from "@/lib/governo";
 import {
   aprovacaoDoGrupo,
   calcularMedida,
@@ -12,6 +12,7 @@ import {
   executar,
   mudarOrcamento,
   nomeDoMes,
+  LIMITE_OBRAS,
   listaEstatais,
   obrasAtivas,
   orcamentoAberto,
@@ -45,6 +46,7 @@ import {
 } from "@/lib/mandato-dados";
 import { POLITICOS } from "@/lib/pessoas";
 import { BuscaPessoa } from "../BuscaPessoa";
+import { Congresso3D } from "../congresso/Congresso3D";
 import { Janela } from "../Janela";
 import { Barras, Bloco, numero, Numeros, Serie } from "./Comum";
 
@@ -312,7 +314,7 @@ export function PainelObras(props: Props) {
       </Bloco>
       <Bloco titulo="Iniciar uma obra">
         <p className="ajuda">
-          {obrasAtivas(mandato).length} de 8 frentes ativas. Custos e prazos são estimativas do jogo.
+          {obrasAtivas(mandato).length} de {LIMITE_OBRAS} frentes ativas. Custos e prazos são estimativas do jogo.
         </p>
         <div className="bloco">
           <label className="campo">
@@ -722,6 +724,9 @@ export function PainelCongresso(props: Props) {
   const { semAcoes, fazer } = useAcao(props);
   return (
     <div className="areas">
+      <Bloco titulo="Congresso Nacional">
+        <Congresso3D partidos={resumoDoCongresso(props.contexto.governo, props.contexto.candidato).partidos} />
+      </Bloco>
       <Bloco titulo="Enviar um projeto">
         <Barras itens={[{ nome: "Relação com o Congresso", valor: mandato.congresso }]} />
         {AREAS_PROJETO.map((area) => (

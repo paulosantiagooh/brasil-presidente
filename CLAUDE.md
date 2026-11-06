@@ -12,6 +12,8 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - O jogo começa na eleição de 2026, em uma história alternativa. Adversários, vices e ministros são políticos reais em um cenário hipotético, a pedido do dono do projeto. Confira cargo e partido antes de citar alguém.
 - A lista de deputados e senadores vem dos dados abertos do Congresso (`scripts/gerar-parlamentares.mjs`). Nomes destacados ficam em `src/lib/pessoas.ts`.
 - Pessoas reais: nunca invente crime, escândalo, fala ou opinião, não use foto delas sem licença e mantenha o aviso de simulação nas telas. Eventos negativos inventados só para o personagem do jogador.
+- Ao jogar com um político real, o jogo não define a ideologia dele nem inventa denúncia: a ideologia é escolha do jogador, e eventos negativos ficam neutros.
+- O Congresso em 3D fica em `src/components/congresso/` e carrega o Three.js só quando a tela abre.
 - Atributos de ministros reais vêm do tipo de cargo e do alinhamento na partida, nunca de uma nota pessoal. Técnicos são personagens fictícios.
 - As bancadas de `src/lib/governo.ts` partem da Câmara eleita em 2026 e da projeção do Senado para 2027.
 - O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e os nomes técnicos para cargos são fictícios. Eventos nunca citam pessoas reais.

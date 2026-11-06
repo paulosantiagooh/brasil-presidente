@@ -1756,6 +1756,35 @@ label.botao:has(+ .arquivo:focus-visible) {
   color: var(--texto-suave);
 }
 
+.congresso-3d {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.congresso-3d-area {
+  position: relative;
+  width: 100%;
+  height: clamp(300px, 52dvh, 480px);
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--superficie), var(--fundo));
+}
+
+.congresso-3d-area canvas {
+  display: block;
+  cursor: grab;
+}
+
+.foto-iniciais {
+  color: var(--turquesa-claro);
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
 .tela:has(.apuracao) {
   width: min(100%, 64rem);
 }

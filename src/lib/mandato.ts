@@ -29,7 +29,7 @@ import {
 
 export const MESES = 48;
 export const ACOES_POR_MES = 3;
-const LIMITE_OBRAS = 8;
+export const LIMITE_OBRAS = 12;
 
 const NOME_MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -178,7 +178,7 @@ export function criarMandato(contexto: Contexto, campanha: Campanha, eleicao: El
     acoes: ACOES_POR_MES,
     fase: "gestao",
     economia: {
-      pib: 1.8, ipca: 5.2, selic: 13.5, dolar: 5.34, desemprego: 6, divida: 80, primario: -0.5, carga: 0,
+      pib: 1.8, ipca: 5.2, selic: 13.5, dolar: 5.34, desemprego: 6, divida: 80, primario: -0.2, carga: 0,
       renda: 100, investimento: 17, exportacoes: 340, reservas: 350, confianca: 50 + (balanco.credibilidade - 50) * 0.4,
       pobreza: 23, desigualdade: 0.5, informalidade: 38,
     },
@@ -259,7 +259,7 @@ export function calcularMedida(medida: Medida) {
   const peso = medida.intensidade * instrumento.forca;
   const efeito: Efeito = {
     [area.campo]: area.escala * objetivo.ganho * peso,
-    "e.primario": -0.06 * objetivo.custo * peso,
+    "e.primario": -0.04 * objetivo.custo * peso,
     aprovacao: objetivo.aprovacao * peso,
     "e.confianca": objetivo.confianca * medida.intensidade,
   };
@@ -335,7 +335,7 @@ export function colocarEmVotacao(original: Mandato, contexto: Contexto): Mandato
   const resultado = votar(m, contexto, proposta, bonusDasConcessoes(concessoes));
   m.pendencia.resultado = { aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado };
   m.votacoes.unshift({ mes: m.mes, projeto: proposta.nome, aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado });
-  aplicar(m, { "e.primario": -0.04 * concessoes.emendas, "s.confianca": -concessoes.cargos });
+  aplicar(m, { "e.primario": -0.025 * concessoes.emendas, "s.confianca": -concessoes.cargos });
 
   const registro = m.medidas.find((medida) => medida.id === proposta.medidaId);
   if (registro) registro.situacao = resultado.aprovado ? "Aprovada" : "Rejeitada";
@@ -581,7 +581,9 @@ function simularMes(m: Mandato) {
   const e = m.economia;
   const s = m.sociedade;
   const p = m.seguranca;
-  const excesso = (custoDoOrcamentoDoMandato(m) - TETO_ORCAMENTO) / 100;
+  // Passar do limite pesa mais do que a folga ajuda.
+  const saldo = (custoDoOrcamentoDoMandato(m) - TETO_ORCAMENTO) / 100;
+  const excesso = saldo > 0 ? saldo : saldo * 0.2;
   const obrasEmExecucao = m.obras.filter((o) => o.situacao === "andamento" && o.contrato).length;
 
   // Crescimento, inflação e juros andam devagar: as decisões demoram a aparecer.
@@ -596,9 +598,9 @@ function simularMes(m: Mandato) {
   }
   e.dolar = limitar(e.dolar * (1 + (e.ipca - 3.5) * 0.001 - (e.confianca - 50) * 0.0004 + (e.primario < -1.5 ? 0.002 : 0) + ruido(m, 0.008)), 3, 12);
   e.desemprego = limitar(e.desemprego - (e.pib - 2) * 0.03 + ruido(m, 0.04), 3, 20);
-  const primarioAlvo = -0.5 - excesso * 1.2 + e.carga * 0.3 + (e.pib - 2) * 0.1 - custoAnualDasObras(m) * 0.012;
+  const primarioAlvo = -0.2 - excesso * 1.2 + e.carga * 0.3 + (e.pib - 2) * 0.1 - custoAnualDasObras(m) * 0.007;
   e.primario = aproximar(e.primario, primarioAlvo, 0.08);
-  e.divida = limitar(e.divida + ((e.selic - e.ipca - e.pib) * 0.8 - e.primario) / 12, 20, 200);
+  e.divida = limitar(e.divida + ((e.selic - e.ipca - e.pib) * 0.55 - e.primario) / 12, 20, 200);
   const confiancaAlvo = 50 + e.primario * 6 - Math.max(0, e.divida - 85) * 0.8 - Math.max(0, e.ipca - 5) * 3;
   e.confianca = limitar(aproximar(e.confianca, confiancaAlvo, 0.06));
   e.renda *= 1 + (e.pib - 1) * 0.0008;
