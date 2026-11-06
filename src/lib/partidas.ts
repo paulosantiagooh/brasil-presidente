@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
+import { CANDIDATO_VAZIO, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
 import { criarLoja } from "./loja";
 
@@ -10,7 +11,8 @@ export type Partida = {
   nome: string;
   cenario: 2030;
   dificuldade: Dificuldade;
-  etapa: "criacao-candidato";
+  etapa: "criacao-candidato" | "campanha";
+  candidato?: Candidato;
   criadaEm: number;
   atualizadaEm: number;
 };
@@ -54,6 +56,27 @@ export function marcarComoJogada(id: string) {
   loja.gravar(
     loja.ler().map((p) => (p.id === id ? { ...p, atualizadaEm: Date.now() } : p)),
   );
+}
+
+export function candidatoDaPartida(partida: Partida): Candidato {
+  return { ...CANDIDATO_VAZIO, ...partida.candidato };
+}
+
+function mudarPartida(id: string, mudar: (partida: Partida) => Partial<Partida>) {
+  loja.gravar(
+    loja
+      .ler()
+      .map((p) => (p.id === id ? { ...p, ...mudar(p), atualizadaEm: Date.now() } : p)),
+  );
+}
+
+// Cada mudança na ficha já fica salva, sem botão de salvar.
+export function atualizarCandidato(id: string, mudanca: Partial<Candidato>) {
+  mudarPartida(id, (p) => ({ candidato: { ...candidatoDaPartida(p), ...mudanca } }));
+}
+
+export function confirmarCandidatura(id: string) {
+  mudarPartida(id, () => ({ etapa: "campanha" }));
 }
 
 export function apagarPartida(id: string) {

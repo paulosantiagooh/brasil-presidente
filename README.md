@@ -6,7 +6,7 @@ O cenário é uma simulação: o jogo não presume candidatos nem resultados rea
 
 ## Estado atual
 
-Etapa 1 do plano: tela inicial navegável, partidas salvas no aparelho, configurações e adaptação para computador e celular.
+Etapas 1 e 2 do plano: tela inicial navegável, partidas salvas no aparelho, configurações, criação completa do candidato e adaptação para computador e celular. A próxima é a campanha eleitoral.
 
 O documento completo do projeto está em [docs/PROJETO.md](docs/PROJETO.md).
 

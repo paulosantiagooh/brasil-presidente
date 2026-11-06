@@ -26,7 +26,9 @@ export function PainelPartidas({ aoCarregar }: Props) {
       {partidas.map((partida) => (
         <li key={partida.id} className="partida">
           <div className="partida-dados">
-            <p className="partida-nome">{partida.nome}</p>
+            <p className="partida-nome">
+              {partida.candidato?.nomeUrna.trim() || partida.nome}
+            </p>
             <p className="dado">
               Eleição {partida.cenario} · {NOME_DIFICULDADE[partida.dificuldade]}
             </p>
