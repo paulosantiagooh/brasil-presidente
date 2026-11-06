@@ -239,7 +239,7 @@ const PROFESSOR: OpcaoIndicacao = { nome: "Prof. Caetano Vidal Rocha", perfil: "
 
 // Calendário real de vagas. Janeiro de 2027 é o mês 1. Os nomes das opções são fictícios.
 export const VAGAS: Vaga[] = [
-  { id: "stf-barroso", mes: 2, orgao: "STF", cargo: "Vaga de Luís Roberto Barroso no STF", regra: `Cadeira aberta desde outubro de 2025. ${REGRA_STF}`, politicos: true, opcoes: [JURISTA, ADVOGADO] },
+  { id: "stf-barroso", mes: 3, orgao: "STF", cargo: "Vaga de Luís Roberto Barroso no STF", regra: `Cadeira aberta desde outubro de 2025. ${REGRA_STF}`, politicos: true, opcoes: [JURISTA, ADVOGADO] },
   { id: "pgr-2027", mes: 12, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: REGRA_PGR, politicos: false, opcoes: [
     { nome: "Dra. Cecília Rangel Motta", perfil: "Procuradora de carreira, sem ligação com o governo.", bonus: 0.08, efeito: { "s.confianca": 3, congresso: -1 } },
     { nome: "Dr. Augusto Paiva Leal", perfil: "Procurador próximo do governo.", bonus: 0, efeito: { "s.confianca": -3, congresso: 1 } },
@@ -255,6 +255,20 @@ export const VAGAS: Vaga[] = [
     { nome: "Dr. Nelson Ayres Fontes", perfil: "Procurador de perfil conciliador.", bonus: 0.04, efeito: { congresso: 1 } },
   ] },
   { id: "stf-gilmar", mes: 48, orgao: "STF", cargo: "Vaga de Gilmar Mendes no STF", sai: "Gilmar Mendes", regra: `Aposentadoria compulsória aos 75 anos, em dezembro de 2030. ${REGRA_STF}`, politicos: true, opcoes: [PROFESSOR, JUIZA, ADVOGADO] },
+  // Segundo mandato: janeiro de 2031 é o mês 49.
+  { id: "pgr-2031", mes: 60, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: REGRA_PGR, politicos: false, opcoes: [
+    { nome: "Dra. Helena Quintão Dias", perfil: "Procuradora de carreira, respeitada pelos colegas.", bonus: 0.08, efeito: { "s.confianca": 3 } },
+    { nome: "Dr. Mauro Antunes Reis", perfil: "Procurador próximo do governo.", bonus: 0, efeito: { "s.confianca": -3, congresso: 1 } },
+  ] },
+  { id: "bc-2033", mes: 72, orgao: "Banco Central", cargo: "Presidência do Banco Central", regra: "Mandato de 4 anos a partir de janeiro de 2033, com aprovação do Senado e autonomia do banco.", politicos: true, opcoes: [
+    { nome: "Lígia Barreto Sampaio", perfil: "Economista de carreira no Banco Central.", bonus: 0.08, efeito: { "e.confianca": 6 } },
+    { nome: "Tomás Reis Figueira", perfil: "Economista que defende mais crescimento.", bonus: 0, efeito: { "e.confianca": -5, "e.ipca": 0.3, aprovacao: 1 } },
+  ] },
+  { id: "stf-fachin", mes: 74, orgao: "STF", cargo: "Vaga de Edson Fachin no STF", sai: "Edson Fachin", regra: `Aposentadoria compulsória aos 75 anos, em fevereiro de 2033. ${REGRA_STF}`, politicos: true, opcoes: [JURISTA, PROFESSOR, ADVOGADO] },
+  { id: "pgr-2033", mes: 84, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: REGRA_PGR, politicos: false, opcoes: [
+    { nome: "Dra. Olga Prates Vieira", perfil: "Procuradora com longa carreira.", bonus: 0.07, efeito: { "s.confianca": 2 } },
+    { nome: "Dr. Sílvio Moura Dantas", perfil: "Procurador de perfil conciliador.", bonus: 0.04, efeito: { congresso: 1 } },
+  ] },
 ];
 
 export type Ministro = {
@@ -329,6 +343,27 @@ export const TONS_PRONUNCIAMENTO: { id: string; nome: string; efeito: Efeito }[]
   { id: "mobilizar", nome: "Mobilizar a população", efeito: { aprovacao: 1.5, congresso: -1 } },
   { id: "contas", nome: "Prestar contas", efeito: { "s.confianca": 1.5 } },
   { id: "oposicao", nome: "Criticar a oposição", efeito: { aprovacao: 0.5, congresso: -3 } },
+];
+
+// Na eleição da Mesa, os nomes não são citados: quem decide é a relação com os partidos.
+export const EVENTO_MESA: EventoMandato = {
+  id: "mesa",
+  tema: "Congresso",
+  titulo: "Eleição da Mesa do Congresso",
+  texto: "Câmara e Senado vão escolher quem preside as Casas pelos próximos dois anos.",
+  opcoes: [
+    { texto: "Apoiar o nome do maior partido da base.", efeito: { congresso: 4, aprovacao: -1 } },
+    { texto: "Lançar um candidato ligado ao governo.", efeito: { congresso: -3, aprovacao: 1 } },
+    { texto: "Não interferir na escolha.", efeito: { congresso: -1, "s.confianca": 1 } },
+  ],
+};
+
+export const MESES_DA_MESA = [2, 26, 50, 75];
+
+export const DEFESAS_IMPEACHMENT: { id: string; nome: string; resumo: string; bonus: number; efeito: Efeito }[] = [
+  { id: "emendas", nome: "Liberar emendas e cargos", resumo: "Compra tempo no Congresso, mas pesa nas contas e na confiança.", bonus: 0.12, efeito: { "e.primario": -0.2, "s.confianca": -3 } },
+  { id: "ruas", nome: "Mobilizar apoiadores nas ruas", resumo: "Levanta a aprovação, mas irrita parte do Congresso.", bonus: 0.04, efeito: { aprovacao: 3, congresso: -3 } },
+  { id: "pacto", nome: "Propor um pacto e trocar parte do governo", resumo: "Abre espaço aos partidos e reduz a sua autonomia.", bonus: 0.09, efeito: { aprovacao: -1, congresso: 4 } },
 ];
 
 export const INSTITUICOES = [

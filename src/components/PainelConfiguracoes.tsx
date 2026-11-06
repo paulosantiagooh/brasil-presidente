@@ -88,6 +88,14 @@ export function PainelConfiguracoes() {
         aoMudar={(movimento) => mudarConfig({ movimento })}
       />
 
+      <section className="ajuste">
+        <h3>Instalar no aparelho</h3>
+        <p>
+          No Android, abra o menu do navegador e escolha Instalar app. No iPhone, toque em Compartilhar e em
+          Adicionar à Tela de Início.
+        </p>
+      </section>
+
       <section className="ajuste ajuste-perigo">
         <h3>Partidas salvas neste aparelho</h3>
         {partidas.length === 0 ? (

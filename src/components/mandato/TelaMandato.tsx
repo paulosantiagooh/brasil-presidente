@@ -7,19 +7,20 @@ import type { Candidato } from "@/lib/candidato";
 import type { Governo } from "@/lib/governo";
 import {
   ACOES_POR_MES,
+  defenderImpeachment,
   encerrarMes,
   fecharPendencia,
   indicacaoLivre,
   indicacaoPolitica,
   indicar,
-  MESES,
   nomeDoMes,
   promessasDoMandato,
   responderEvento,
   type Contexto,
   type Mandato,
 } from "@/lib/mandato";
-import { atualizarMandato, type Partida } from "@/lib/partidas";
+import { DEFESAS_IMPEACHMENT } from "@/lib/mandato-dados";
+import { atualizarGoverno, atualizarMandato, disputarReeleicao, type Partida } from "@/lib/partidas";
 import { POLITICOS } from "@/lib/pessoas";
 import { BuscaPessoa } from "../BuscaPessoa";
 import {
@@ -30,6 +31,7 @@ import {
   PainelEstatais,
   PainelInstituicoes,
   PainelMedidas,
+  PainelMinistros,
   PainelObras,
   PainelOrcamento,
   PainelRelatorios,
@@ -41,6 +43,7 @@ import { TelaVotacao } from "./Votacao";
 const ABAS = [
   { id: "painel", nome: "Painel" },
   { id: "medidas", nome: "Medidas" },
+  { id: "ministros", nome: "Ministros" },
   { id: "economia", nome: "Economia" },
   { id: "orcamento", nome: "Orçamento" },
   { id: "sociedade", nome: "Sociedade" },
@@ -134,6 +137,36 @@ function TelaPendencia(props: {
   const pendencia = mandato.pendencia;
   if (!pendencia) return null;
 
+  if (pendencia.tipo === "impeachment") {
+    return (
+      <section className="boletim" aria-labelledby="titulo-impeachment">
+        <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Crise política</p>
+        <h1 id="titulo-impeachment" className="titulo-tela">
+          Pedido de impeachment
+        </h1>
+        <p className="texto-tela">
+          Com {numero(mandato.aprovacao, 0)}% de aprovação e pouco apoio no Congresso, a Câmara vai votar a
+          abertura do processo. O governo precisa de 172 deputados para barrar. Se perder, o Senado decide, e
+          o governo precisa de 28 senadores. Como você reage?
+        </p>
+        <ul className="lista-acoes espaco-topo">
+          {DEFESAS_IMPEACHMENT.map((defesa) => (
+            <li key={defesa.id}>
+              <button
+                type="button"
+                className="acao"
+                onClick={() => atualizar((m) => defenderImpeachment(m, contexto, defesa.id))}
+              >
+                <strong>{defesa.nome}</strong>
+                <span className="ajuda">{defesa.resumo}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
   if (pendencia.tipo === "votacao") {
     return <TelaVotacao mandato={mandato} contexto={contexto} atualizar={atualizar} />;
   }
@@ -150,7 +183,9 @@ function TelaPendencia(props: {
           {pendencia.titulo}
         </h1>
         <p className="texto-tela">
-          {pendencia.texto}: {pendencia.sim} votos a favor e {pendencia.nao} contra. São necessários 41.
+          {pendencia.texto.includes("precisava")
+            ? `${pendencia.texto}: teve ${pendencia.sim}, contra ${pendencia.nao}.`
+            : `${pendencia.texto}: ${pendencia.sim} votos a favor e ${pendencia.nao} contra. São necessários 41.`}
         </p>
         <footer className="rodape-passo">
           <span />
@@ -255,7 +290,7 @@ function veredito(l: LinhaBalanco) {
   return subiu === (l.melhor === "maior") ? "Melhorou" : "Piorou";
 }
 
-function TelaFim({ mandato, campanha, candidato }: { mandato: Mandato; campanha: Campanha; candidato: Candidato }) {
+function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; mandato: Mandato; campanha: Campanha; candidato: Candidato }) {
   const reeleicao = mandato.reeleicao;
   const promessas = promessasDoMandato(mandato, campanha);
   const cumpridas = promessas.filter((p) => p.cumprida).length;
@@ -265,17 +300,30 @@ function TelaFim({ mandato, campanha, candidato }: { mandato: Mandato; campanha:
   const melhoraram = todas.filter((v) => v === "Melhorou").length;
   const pioraram = todas.filter((v) => v === "Piorou").length;
   const aprovados = mandato.indicados.filter((i) => i.aprovado);
+  const segundo = mandato.limite > 48;
+  const perdeu = reeleicao?.venceu === false;
+  const podeDisputar = !mandato.cassado && !segundo && !reeleicao;
 
   return (
     <section className="campanha" aria-labelledby="titulo-fim">
-      <p className="sobretitulo">Dezembro de 2030 · Fim do mandato · Simulação</p>
+      <p className="sobretitulo">{mandato.cassado ? nomeDoMes(mandato.mes) : `Dezembro de ${segundo ? 2034 : 2030}`} · Fim do mandato · Simulação</p>
       <h1 id="titulo-fim" className="titulo-tela">
-        {reeleicao?.venceu ? `Reeleição de ${candidato.nomeUrna}` : "O mandato chegou ao fim"}
+        {mandato.cassado
+          ? "O mandato foi interrompido"
+          : segundo
+            ? "Fim do segundo mandato"
+            : perdeu
+              ? "O governo perdeu a reeleição"
+              : "Fim do primeiro mandato"}
       </h1>
       <p className="texto-tela">
-        {reeleicao?.venceu
-          ? `A eleição de 2030 terminou com ${numero(reeleicao.votos)}% dos votos válidos para o seu governo.`
-          : `Na eleição de 2030, sua candidatura à reeleição terminou com ${numero(reeleicao?.votos ?? 0)}% dos votos válidos.`}
+        {mandato.cassado
+          ? `${candidato.nomeUrna} deixou o governo depois de um impeachment.`
+          : segundo
+            ? `${candidato.nomeUrna} completou oito anos de governo. A Constituição não permite um terceiro mandato seguido.`
+            : perdeu
+              ? `A candidatura à reeleição terminou com ${numero(reeleicao?.votos ?? 0)}% dos votos válidos.`
+              : "O país volta às urnas. A Constituição permite uma reeleição. Veja como você entrega o governo."}
       </p>
       <dl className="placar">
         <div>
@@ -358,9 +406,22 @@ function TelaFim({ mandato, campanha, candidato }: { mandato: Mandato; campanha:
       </p>
       <footer className="rodape-passo">
         <span />
-        <Link className="botao botao-destaque" href="/">
-          Voltar ao menu
-        </Link>
+        {podeDisputar ? (
+          <button
+            type="button"
+            className="botao botao-destaque"
+            onClick={() => {
+              disputarReeleicao(partida.id);
+              window.scrollTo({ top: 0 });
+            }}
+          >
+            Disputar a reeleição
+          </button>
+        ) : (
+          <Link className="botao botao-destaque" href="/">
+            Voltar ao menu
+          </Link>
+        )}
       </footer>
     </section>
   );
@@ -378,14 +439,14 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
   const e = mandato.economia;
 
   if (mandato.fase === "fim") {
-    return <TelaFim mandato={mandato} campanha={campanha} candidato={candidato} />;
+    return <TelaFim partida={partida} mandato={mandato} campanha={campanha} candidato={candidato} />;
   }
   if (mandato.fase === "pendencia") return <TelaPendencia {...props} />;
 
   return (
     <section className="campanha" aria-labelledby="titulo-mandato">
       <p className="sobretitulo">
-        Mês {mandato.mes} de {MESES} · Simulação
+        Mês {mandato.mes} de {mandato.limite} · Simulação
       </p>
       <div className="topo-mandato">
         <h1 id="titulo-mandato" className="titulo-tela">
@@ -399,7 +460,7 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
             window.scrollTo({ top: 0 });
           }}
         >
-          {mandato.mes === MESES ? "Encerrar o mandato" : "Encerrar o mês"}
+          {mandato.mes === mandato.limite ? "Encerrar o mandato" : "Encerrar o mês"}
         </button>
       </div>
 
@@ -461,6 +522,14 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
 
       {aba === "painel" && <Painel mandato={mandato} campanha={campanha} />}
       {aba === "medidas" && <PainelMedidas {...props} />}
+      {aba === "ministros" && (
+        <PainelMinistros
+          {...props}
+          aoTrocar={(id, pessoa) =>
+            atualizarGoverno(partida.id, (g) => ({ ...g, ministros: { ...g.ministros, [id]: pessoa.id } }))
+          }
+        />
+      )}
       {aba === "economia" && <PainelEconomia {...props} />}
       {aba === "orcamento" && <PainelOrcamento {...props} />}
       {aba === "sociedade" && <PainelSociedade {...props} />}

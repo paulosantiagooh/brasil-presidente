@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Campanha } from "@/lib/campanha";
 import { UFS } from "@/lib/candidato";
-import { AREAS, NOME_NIVEL, TETO_ORCAMENTO } from "@/lib/governo";
+import { AREAS, candidatosAoMinisterio, ministeriosAtivos, NOME_NIVEL, pessoaPorId, TETO_ORCAMENTO, type Ministerio, type Pessoa } from "@/lib/governo";
 import {
   aprovacaoDoGrupo,
   calcularMedida,
@@ -12,6 +12,7 @@ import {
   executar,
   mudarOrcamento,
   nomeDoMes,
+  listaEstatais,
   obrasAtivas,
   orcamentoAberto,
   podeIniciarObra,
@@ -369,14 +370,20 @@ export function PainelObras(props: Props) {
   );
 }
 
-const NOME_CONTROLE = { estatal: "100% pública", "capital-aberto": "Capital aberto", privatizada: "Privatizada" };
+const NOME_CONTROLE = { estatal: "100% pública", "capital-aberto": "Capital aberto", privatizada: "Privatizada", fundida: "Fundida" };
 
 export function PainelEstatais(props: Props) {
   const { mandato } = props;
   const { semAcoes, fazer } = useAcao(props);
   const [aberta, setAberta] = useState<string | null>(null);
   const [nomeLivre, setNomeLivre] = useState("");
-  const estatalAberta = ESTATAIS.find((e) => e.id === aberta);
+  const lista = listaEstatais(mandato);
+  const ativas = lista.filter((e) => !["privatizada", "fundida"].includes(mandato.estatais[e.id].controle));
+  const estatalAberta = lista.find((e) => e.id === aberta);
+  const tecnico = estatalAberta ? (TECNICOS_ESTATAIS[estatalAberta.id] ?? "Dra. Clara Nunes Vieira") : "";
+  const [novaEstatal, setNovaEstatal] = useState("");
+  const [fundirDe, setFundirDe] = useState("correios");
+  const [fundirCom, setFundirCom] = useState("serpro");
 
   function nomear(nome: string, tecnico: boolean) {
     if (aberta) fazer({ tipo: "estatal-presidente", id: aberta, nome, tecnico });
@@ -387,13 +394,13 @@ export function PainelEstatais(props: Props) {
   return (
     <div className="formulario">
       <p className="ajuda">
-        Presidente técnico agrada o mercado. Presidente político agrada o Congresso. Privatizar e abrir
-        capital passam por votação. Fundir e criar empresas ainda não estão disponíveis.
+        Presidente técnico agrada o mercado. Presidente político agrada o Congresso. Privatizar, abrir
+        capital, criar e fundir empresas passam por votação.
       </p>
       <ul className="lista-estatais">
-        {ESTATAIS.map((estatal) => {
+        {lista.map((estatal) => {
           const situacao = mandato.estatais[estatal.id];
-          const vendida = situacao.controle === "privatizada";
+          const vendida = situacao.controle === "privatizada" || situacao.controle === "fundida";
           return (
             <li key={estatal.id} className="bloco">
               <p className="barra-nome">
@@ -424,6 +431,55 @@ export function PainelEstatais(props: Props) {
           );
         })}
       </ul>
+      <div className="areas">
+        <div className="bloco">
+          <label className="campo">
+            <span className="rotulo">Criar uma estatal</span>
+            <input value={novaEstatal} maxLength={50} autoComplete="off" placeholder="Nome da empresa" onChange={(e) => setNovaEstatal(e.target.value)} />
+          </label>
+          <button
+            type="button"
+            className="botao"
+            disabled={semAcoes || novaEstatal.trim().length < 3}
+            onClick={() => {
+              fazer({ tipo: "estatal-criar", nome: novaEstatal.trim() });
+              setNovaEstatal("");
+            }}
+          >
+            Enviar ao Congresso
+          </button>
+        </div>
+        <div className="bloco">
+          <label className="campo">
+            <span className="rotulo">Fundir a empresa</span>
+            <select value={fundirDe} onChange={(e) => setFundirDe(e.target.value)}>
+              {ativas.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="campo">
+            <span className="rotulo">Com a empresa</span>
+            <select value={fundirCom} onChange={(e) => setFundirCom(e.target.value)}>
+              {ativas.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="botao"
+            disabled={semAcoes || fundirDe === fundirCom}
+            onClick={() => fazer({ tipo: "estatal-fundir", de: fundirDe, para: fundirCom })}
+          >
+            Enviar ao Congresso
+          </button>
+        </div>
+      </div>
       <Janela
         aberta={aberta !== null}
         titulo={estatalAberta ? `Presidência: ${estatalAberta.nome}` : ""}
@@ -431,8 +487,8 @@ export function PainelEstatais(props: Props) {
       >
         {estatalAberta && (
           <div className="formulario">
-            <button type="button" className="acao" onClick={() => nomear(TECNICOS_ESTATAIS[estatalAberta.id], true)}>
-              <strong>{TECNICOS_ESTATAIS[estatalAberta.id]}</strong>
+            <button type="button" className="acao" onClick={() => nomear(tecnico, true)}>
+              <strong>{tecnico}</strong>
               <span className="ajuda">Executivo técnico (personagem fictício).</span>
             </button>
             <div className="bloco">
@@ -607,6 +663,54 @@ export function PainelMedidas(props: Props) {
           </ul>
         )}
       </Bloco>
+    </div>
+  );
+}
+
+export function PainelMinistros(props: Props & { aoTrocar: (ministerio: string, pessoa: Pessoa) => void }) {
+  const { contexto, aoTrocar } = props;
+  const { semAcoes, fazer } = useAcao(props);
+  const { governo, candidato } = contexto;
+  const [aberto, setAberto] = useState<Ministerio | null>(null);
+
+  function trocar(pessoa: Pessoa) {
+    if (!aberto) return;
+    aoTrocar(aberto.id, pessoa);
+    fazer({ tipo: "reforma", ministerio: aberto.nome, nome: pessoa.nome, tecnico: pessoa.tipo === "tecnico" });
+    setAberto(null);
+  }
+
+  return (
+    <div className="formulario">
+      <p className="ajuda">
+        Cada troca gasta uma ação e muda a base: partido que perde a pasta pode sair do governo.
+      </p>
+      <ul className="lista-ministerios">
+        {ministeriosAtivos(governo).map((ministerio) => {
+          const pessoa = pessoaPorId(governo.ministros[ministerio.id]);
+          return (
+            <li key={ministerio.id}>
+              <button type="button" className="acao" disabled={semAcoes} onClick={() => setAberto(ministerio)}>
+                <span className="cartao-topo">
+                  <strong>{ministerio.nome}</strong>
+                  {pessoa?.sigla && <span className="dado">{pessoa.sigla}</span>}
+                </span>
+                <span className="ajuda">{pessoa?.nome}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <Janela aberta={aberto !== null} titulo={aberto?.nome ?? ""} aoFechar={() => setAberto(null)}>
+        {aberto && (
+          <BuscaPessoa
+            key={aberto.id}
+            pessoas={candidatosAoMinisterio(governo, candidato, aberto, [])}
+            selecionado={governo.ministros[aberto.id]}
+            aoEscolher={trocar}
+          />
+        )}
+      </Janela>
     </div>
   );
 }

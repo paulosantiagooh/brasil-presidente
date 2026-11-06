@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import type { ReactNode } from "react";
+import { Instalavel } from "@/components/Instalavel";
 import "./globals.css";
 
 const fonteTitulo = Barlow_Condensed({
@@ -21,10 +22,15 @@ const fonteDado = IBM_Plex_Mono({
   variable: "--fonte-dado",
 });
 
+const caminhoBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "BRASIL: PRESIDENTE",
   description:
     "Simulador político: dispute a eleição presidencial de 2026 e governe o Brasil por quatro anos.",
+  manifest: `${caminhoBase}/manifest.webmanifest`,
+  appleWebApp: { capable: true, title: "Brasil Presidente", statusBarStyle: "black-translucent" },
+  icons: { apple: `${caminhoBase}/icone-192.png` },
 };
 
 export const viewport: Viewport = {
@@ -46,7 +52,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: aplicarConfig }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <Instalavel caminho={caminhoBase} />
+        {children}
+      </body>
     </html>
   );
 }

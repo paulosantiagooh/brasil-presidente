@@ -52,6 +52,8 @@ const RIVAIS_POR_BLOCO: Rival[][] = [
   ],
 ];
 
+const HADDAD: Rival = { nome: "Fernando Haddad", sigla: "PT", numero: 13, uf: "SP", economia: 30, costumes: 28, forca: 22 };
+
 export type Acao =
   | { tipo: "comicio"; uf: string }
   | { tipo: "visita"; uf: string }
@@ -224,7 +226,7 @@ function fazerPesquisa(c: Campanha): Pesquisa {
 }
 
 // Uma candidatura por partido, sem repetir os partidos da chapa do jogador.
-function escolherRivais(c: Campanha, candidato: Candidato) {
+function escolherRivais(c: Campanha, candidato: Candidato, reeleicao: boolean) {
   const ocupados = new Set([
     partidoDoCandidato(candidato)?.sigla,
     siglaDoVice(candidato),
@@ -239,7 +241,9 @@ function escolherRivais(c: Campanha, candidato: Candidato) {
   };
   // Lula é o adversário principal da esquerda, sempre que o PT estiver livre.
   const [esquerda, direita, centro] = RIVAIS_POR_BLOCO;
-  escolher(ocupados.has("PT") ? esquerda : esquerda.slice(0, 1));
+  // Em 2030, o nome do PT é outro: Haddad é o mais citado para a sucessão.
+  const principal = reeleicao ? [HADDAD] : esquerda.slice(0, 1);
+  escolher(ocupados.has("PT") ? esquerda.slice(1) : principal);
   escolher(direita);
   escolher(centro);
   while (escolhidos.length < 4) escolher(RIVAIS_POR_BLOCO.flat());
@@ -249,11 +253,12 @@ function escolherRivais(c: Campanha, candidato: Candidato) {
 const FORCA_DIFICULDADE: Record<Dificuldade, number> = { facil: 1.15, media: 1, dificil: 0.85 };
 const ATIVIDADE_RIVAIS: Record<Dificuldade, number> = { facil: 0.8, media: 1, dificil: 1.25 };
 
-export function criarCampanha(id: string, candidato: Candidato, dificuldade: Dificuldade): Campanha {
+// Na reeleição, a aprovação do governo vira força de campanha.
+export function criarCampanha(id: string, candidato: Candidato, dificuldade: Dificuldade, reeleicao?: { aprovacao: number }): Campanha {
   const atributos = calcularAtributos(candidato);
   const c: Campanha = {
     versao: 1,
-    semente: sementeDe(id),
+    semente: sementeDe(reeleicao ? `${id}-2030` : id),
     semana: 0,
     fase: "agenda",
     acoes: [],
@@ -275,10 +280,11 @@ export function criarCampanha(id: string, candidato: Candidato, dificuldade: Dif
     eventosRegionais: [],
     debate: null,
   };
-  c.rivais = escolherRivais(c, candidato);
+  c.rivais = escolherRivais(c, candidato, Boolean(reeleicao));
 
   const forcaJogador =
-    (6 + atributos.reconhecimento * 0.14 + atributos.articulacao * 0.03) * FORCA_DIFICULDADE[dificuldade];
+    (6 + atributos.reconhecimento * 0.14 + atributos.articulacao * 0.03 + (reeleicao ? 3 + (reeleicao.aprovacao - 40) * 0.35 : 0)) *
+    FORCA_DIFICULDADE[dificuldade];
   const disputa = [
     { uf: candidato.uf, economia: candidato.economia, costumes: candidato.costumes, forca: forcaJogador },
     ...c.rivais,

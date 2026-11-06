@@ -16,14 +16,14 @@ import {
   votarSegundoTurno,
   type Eleicao,
 } from "@/lib/eleicao";
-import { atualizarCampanha, atualizarEleicao, formarGoverno, type Partida } from "@/lib/partidas";
+import { atualizarCampanha, atualizarEleicao, concluirReeleicao, formarGoverno, type Partida } from "@/lib/partidas";
 import { TelaDebate } from "../campanha/Debate";
 import { disputantes } from "../campanha/PainelCampanha";
 import { Apuracao } from "./Apuracao";
 import { ResultadoTurno } from "./ResultadoTurno";
 
 const AVISO =
-  "Resultado inventado pelo jogo, em uma história alternativa. Não é o resultado real de 2026.";
+  "Resultado inventado pelo jogo, em uma história alternativa. Não reproduz nem prevê resultados reais.";
 
 const percentual = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,
@@ -41,6 +41,8 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
   const nomes = disputantes(campanha, candidato);
   const atualizar = (mudar: (e: Eleicao) => Eleicao) => atualizarEleicao(partida.id, mudar);
   const [turnoVisto, setTurnoVisto] = useState<1 | 2>(2);
+  const reeleicao = partida.ciclo === 2;
+  const ano = reeleicao ? 2030 : 2026;
 
   if (campanha.debate) {
     return (
@@ -58,6 +60,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
         key="primeiro"
         turno={eleicao.primeiro}
         nomes={nomes}
+        ano={ano}
         aoConcluir={() => atualizar(concluirApuracao)}
       />
     );
@@ -69,6 +72,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
         key="segundo"
         turno={eleicao.segundo}
         nomes={nomes}
+        ano={ano}
         aoConcluir={() => atualizar(concluirApuracao)}
       />
     );
@@ -80,7 +84,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
     const participa = jogadorNaDisputa(eleicao);
     return (
       <section className="campanha" aria-labelledby="titulo-resultado">
-        <p className="sobretitulo">1º turno · Eleição 2026 · Simulação</p>
+        <p className="sobretitulo">1º turno · Eleição {ano} · Simulação</p>
         <h1 id="titulo-resultado" className="titulo-tela">
           {participa ? "Você está no segundo turno" : "Você ficou fora do segundo turno"}
         </h1>
@@ -191,13 +195,13 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
 
   return (
     <section className="campanha" aria-labelledby="titulo-final">
-      <p className="sobretitulo">Resultado final · Eleição 2026 · Simulação</p>
+      <p className="sobretitulo">Resultado final · Eleição {ano} · Simulação</p>
       <h1 id="titulo-final" className="titulo-tela">
         {venceu ? "Você venceu a eleição" : `Vitória de ${vencedor.nome}`}
       </h1>
       <p className="texto-tela">
         {venceu
-          ? `${vencedor.nome} recebeu ${percentual.format(percentualValido(final, 0))}% dos votos válidos. Agora é hora de formar o governo.`
+          ? `${vencedor.nome} recebeu ${percentual.format(percentualValido(final, 0))}% dos votos válidos. ${reeleicao ? "O segundo mandato vai até dezembro de 2034." : "Agora é hora de formar o governo."}`
           : `Nesta partida, a candidatura de ${nomes[0].nome} terminou com ${percentual.format(percentualValido(totalDoTurno(eleicao.primeiro), 0))}% dos votos válidos no primeiro turno.`}
       </p>
 
@@ -222,7 +226,18 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
 
       <footer className="rodape-passo">
         <span />
-        {venceu ? (
+        {reeleicao ? (
+          <button
+            type="button"
+            className="botao botao-destaque"
+            onClick={() => {
+              concluirReeleicao(partida.id);
+              window.scrollTo({ top: 0 });
+            }}
+          >
+            {venceu ? "Começar o segundo mandato" : "Ver o balanço do governo"}
+          </button>
+        ) : venceu ? (
           <button
             type="button"
             className="botao botao-destaque"

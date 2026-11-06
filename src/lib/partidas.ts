@@ -2,18 +2,20 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { criarCampanha, type Campanha } from "./campanha";
+import { percentualValido, totalDoTurno } from "./eleicao";
 import { CANDIDATO_VAZIO, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
 import { iniciarEleicao, type Eleicao } from "./eleicao";
 import { criarGoverno, type Governo } from "./governo";
 import { criarLoja } from "./loja";
-import { criarMandato, type Mandato } from "./mandato";
+import { criarMandato, registrarReeleicao, type Mandato } from "./mandato";
 
 export type Partida = {
   versao: 1;
   id: string;
   nome: string;
   cenario: number;
+  ciclo?: number;
   dificuldade: Dificuldade;
   etapa: "criacao-candidato" | "campanha" | "eleicao" | "governo" | "mandato";
   candidato?: Candidato;
@@ -25,8 +27,23 @@ export type Partida = {
   atualizadaEm: number;
 };
 
+// Partidas salvas antes das novidades do mandato ganham os campos que faltam.
+function completar(partida: Partida): Partida {
+  if (!partida.mandato) return partida;
+  return {
+    ...partida,
+    mandato: {
+      ...partida.mandato,
+      limite: partida.mandato.limite ?? 48,
+      cassado: partida.mandato.cassado ?? false,
+      impeachmentMes: partida.mandato.impeachmentMes ?? 0,
+      estataisNovas: partida.mandato.estataisNovas ?? [],
+    },
+  };
+}
+
 const loja = criarLoja<Partida[]>("bp:partidas", [], (bruto) =>
-  Array.isArray(bruto) ? (bruto as Partida[]) : [],
+  Array.isArray(bruto) ? (bruto as Partida[]).map(completar) : [],
 );
 
 // A partida jogada por último vem primeiro.
@@ -134,12 +151,52 @@ export function comecarMandato(id: string) {
   );
 }
 
+export function disputarReeleicao(id: string) {
+  mudarPartida(id, (p) =>
+    p.mandato
+      ? {
+          ciclo: 2,
+          etapa: "campanha",
+          eleicao: undefined,
+          campanha: criarCampanha(p.id, candidatoDaPartida(p), p.dificuldade, { aprovacao: p.mandato.aprovacao }),
+        }
+      : {},
+  );
+}
+
+export function concluirReeleicao(id: string) {
+  mudarPartida(id, (p) => {
+    if (!p.mandato || !p.eleicao) return {};
+    const total = totalDoTurno(p.eleicao.segundo ?? p.eleicao.primeiro);
+    return {
+      etapa: "mandato",
+      mandato: registrarReeleicao(p.mandato, percentualValido(total, 0), p.eleicao.vencedor === 0),
+    };
+  });
+}
+
 export function atualizarMandato(id: string, mudar: (mandato: Mandato) => Mandato) {
   mudarPartida(id, (p) => (p.mandato ? { mandato: mudar(p.mandato) } : {}));
 }
 
 export function apagarPartida(id: string) {
   loja.gravar(loja.ler().filter((p) => p.id !== id));
+}
+
+// Levar partidas para outro aparelho: um arquivo com tudo o que está salvo.
+export function exportarPartidas() {
+  return JSON.stringify({ jogo: "brasil-presidente", versao: 1, partidas: loja.ler() });
+}
+
+export function importarPartidas(texto: string) {
+  const dados = JSON.parse(texto) as { jogo?: string; partidas?: Partida[] };
+  if (dados.jogo !== "brasil-presidente" || !Array.isArray(dados.partidas)) {
+    throw new Error("Arquivo inválido");
+  }
+  const validas = dados.partidas.filter((p) => typeof p.id === "string" && typeof p.nome === "string");
+  const ids = new Set(validas.map((p) => p.id));
+  loja.gravar([...loja.ler().filter((p) => !ids.has(p.id)), ...validas]);
+  return validas.length;
 }
 
 export function apagarTodasAsPartidas() {

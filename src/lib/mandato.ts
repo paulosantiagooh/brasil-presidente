@@ -7,9 +7,12 @@ import {
   ACOES_DIPLOMATICAS,
   AREAS_MEDIDA,
   ESTATAIS,
+  DEFESAS_IMPEACHMENT,
+  EVENTO_MESA,
   EVENTOS_MANDATO,
   GRUPOS_SOCIAIS,
   INSTRUMENTOS,
+  MESES_DA_MESA,
   MODELOS_OBRA,
   OBJETIVOS_MEDIDA,
   OBRAS_REAIS,
@@ -69,7 +72,7 @@ export type Obra = {
 };
 
 export type SituacaoEstatal = {
-  controle: "estatal" | "capital-aberto" | "privatizada";
+  controle: "estatal" | "capital-aberto" | "privatizada" | "fundida";
   gestao: "politica" | "tecnica";
   presidente: string | null;
 };
@@ -89,6 +92,8 @@ export type PropostaEmVoto = {
   projetoId?: string;
   medidaId?: number;
   estatal?: { id: string; controle: "capital-aberto" | "privatizada" };
+  novaEstatal?: string;
+  fusao?: { de: string; para: string };
 };
 
 export type Concessoes = { emendas: number; cargos: number; texto: number };
@@ -97,6 +102,7 @@ export type ResultadoVoto = { aprovado: boolean; camara: Casa; senado: Casa | nu
 
 export type Pendencia =
   | { tipo: "evento"; evento: EventoMandato }
+  | { tipo: "impeachment" }
   | { tipo: "votacao"; proposta: PropostaEmVoto; concessoes: Concessoes; resultado: ResultadoVoto | null }
   | { tipo: "indicacao"; vaga: Vaga }
   | { tipo: "resultado-indicacao"; titulo: string; texto: string; sim: number; nao: number };
@@ -132,6 +138,10 @@ export type Mandato = {
   medidas: { id: number; mes: number; titulo: string; descricao: string; instrumento: string; situacao: string }[];
   mps: { mes: number; medidaId: number; titulo: string; economia: number; efeito: Efeito }[];
   resumoMes: { mes: number; aprovacao: number; pib: number; ipca: number; desemprego: number } | null;
+  limite: number;
+  cassado: boolean;
+  impeachmentMes: number;
+  estataisNovas: { id: string; nome: string; listada: boolean; valor: number }[];
 };
 
 export type Contexto = { governo: Governo; candidato: Candidato };
@@ -198,6 +208,10 @@ export function criarMandato(contexto: Contexto, campanha: Campanha, eleicao: El
     medidas: [],
     mps: [],
     resumoMes: null,
+    limite: MESES,
+    cassado: false,
+    impeachmentMes: 0,
+    estataisNovas: [],
   };
   m.inicio = structuredClone({
     economia: m.economia,
@@ -261,6 +275,9 @@ export type Acao =
   | { tipo: "estatal-presidente"; id: string; nome: string; tecnico: boolean }
   | { tipo: "medida"; medida: Medida }
   | { tipo: "pronunciamento"; tom: string; texto: string }
+  | { tipo: "estatal-criar"; nome: string }
+  | { tipo: "estatal-fundir"; de: string; para: string }
+  | { tipo: "reforma"; ministerio: string; nome: string; tecnico: boolean }
   | { tipo: "diplomacia"; parceiro: string; acao: string }
   | { tipo: "seguranca"; id: string }
   | { tipo: "divida"; acao: "alongar" | "amortizar" | "emitir" };
@@ -281,6 +298,10 @@ export function obrasAtivas(m: Mandato) {
 
 export function podeIniciarObra(m: Mandato) {
   return obrasAtivas(m).length < LIMITE_OBRAS;
+}
+
+export function listaEstatais(m: Mandato) {
+  return [...ESTATAIS, ...m.estataisNovas];
 }
 
 function abrirVotacao(m: Mandato, proposta: PropostaEmVoto) {
@@ -324,6 +345,12 @@ export function colocarEmVotacao(original: Mandato, contexto: Contexto): Mandato
     const efeito = Object.fromEntries(Object.entries(proposta.efeito).map(([k, v]) => [k, v * fator]));
     if (proposta.projetoId) m.projetosAprovados.push(proposta.projetoId);
     if (proposta.estatal) m.estatais[proposta.estatal.id].controle = proposta.estatal.controle;
+    if (proposta.fusao) m.estatais[proposta.fusao.de].controle = "fundida";
+    if (proposta.novaEstatal) {
+      const id = `nova-${m.estataisNovas.length + 1}`;
+      m.estataisNovas.push({ id, nome: proposta.novaEstatal, listada: false, valor: 0.05 });
+      m.estatais[id] = { controle: "estatal", gestao: "politica", presidente: null };
+    }
     aplicar(m, { congresso: 1 });
     if (proposta.atraso > 0) {
       m.pendentes.push({ mes: m.mes + proposta.atraso, efeito, texto: `Os efeitos de "${proposta.nome}" chegaram.` });
@@ -390,13 +417,37 @@ export function executar(original: Mandato, contexto: Contexto, acao: Acao): Man
   }
 
   if (acao.tipo === "estatal-presidente") {
-    const dados = ESTATAIS.find((e) => e.id === acao.id);
+    const dados = listaEstatais(m).find((e) => e.id === acao.id);
     const estatal = m.estatais[acao.id];
     if (!dados || !estatal) return m;
     estatal.presidente = acao.nome;
     estatal.gestao = acao.tecnico ? "tecnica" : "politica";
     aplicar(m, acao.tecnico ? { "e.confianca": 1, congresso: -1 } : { "e.confianca": -1.5, congresso: 2 });
     noticiar(m, `${acao.nome} assume a presidência: ${dados.nome}.`);
+  }
+
+  if (acao.tipo === "estatal-criar") {
+    abrirVotacao(m, {
+      nome: `Criar a estatal ${acao.nome}`, tipo: "Projeto de lei", economia: 25, camara: null, senado: null,
+      atraso: 0, efeito: { "e.primario": -0.05, "e.confianca": -1.5, aprovacao: 0.5 }, novaEstatal: acao.nome,
+    });
+  }
+
+  if (acao.tipo === "estatal-fundir") {
+    const lista = listaEstatais(m);
+    const de = lista.find((e) => e.id === acao.de);
+    const para = lista.find((e) => e.id === acao.para);
+    if (!de || !para || de.id === para.id) return m;
+    abrirVotacao(m, {
+      nome: `Fundir ${de.nome} com ${para.nome}`, tipo: "Projeto de lei", economia: 62, camara: null, senado: null,
+      atraso: 0, efeito: { "e.primario": 0.03, "e.confianca": 1, aprovacao: -0.5 }, fusao: { de: de.id, para: para.id },
+    });
+  }
+
+  if (acao.tipo === "reforma") {
+    aplicar(m, acao.tecnico ? { congresso: -1 } : { congresso: 1 });
+    m.gestao = limitar(m.gestao + (acao.tecnico ? 1 : -0.5));
+    noticiar(m, `Reforma ministerial: ${acao.nome} assume ${acao.ministerio}.`);
   }
 
   if (acao.tipo === "obra") {
@@ -439,10 +490,10 @@ export function executar(original: Mandato, contexto: Contexto, acao: Acao): Man
   }
 
   if (acao.tipo === "estatal") {
-    const dados = ESTATAIS.find((e) => e.id === acao.id);
+    const dados = listaEstatais(m).find((e) => e.id === acao.id);
     const estatal = m.estatais[acao.id];
     if (!dados || !estatal) return m;
-    if (estatal.controle === "privatizada") return m;
+    if (estatal.controle === "privatizada" || estatal.controle === "fundida") return m;
     const privatizar = acao.acao === "privatizar";
     const parte = privatizar ? dados.valor : dados.valor * 0.3;
     abrirVotacao(m, {
@@ -631,9 +682,7 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     desemprego: m.economia.desemprego - anterior.desemprego,
   };
 
-  if (m.mes >= MESES) {
-    const votos = limitar(31 + m.aprovacao * 0.42 + ruido(m, 3), 20, 75);
-    m.reeleicao = { votos, venceu: votos > 50 };
+  if (m.mes >= m.limite) {
     m.fase = "fim";
     return m;
   }
@@ -641,11 +690,23 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   m.mes += 1;
   m.acoes = ACOES_POR_MES;
 
+  if (m.aprovacao < 22 && m.congresso < 42 && m.mes - m.impeachmentMes > 12 && m.mes > 6) {
+    m.impeachmentMes = m.mes;
+    m.pendencia = { tipo: "impeachment" };
+    m.fase = "pendencia";
+    return m;
+  }
+
   const reaberta = m.vagasReabertas.find((v) => v.mes === m.mes);
   const vaga = reaberta ? VAGAS.find((v) => v.id === reaberta.id) : VAGAS.find((v) => v.mes === m.mes);
   m.vagasReabertas = m.vagasReabertas.filter((v) => v.mes > m.mes);
   if (vaga) {
     m.pendencia = { tipo: "indicacao", vaga };
+    m.fase = "pendencia";
+    return m;
+  }
+  if (MESES_DA_MESA.includes(m.mes)) {
+    m.pendencia = { tipo: "evento", evento: EVENTO_MESA };
     m.fase = "pendencia";
     return m;
   }
@@ -704,7 +765,7 @@ export function indicar(original: Mandato, contexto: Contexto, escolhido: OpcaoI
     aplicar(m, { congresso: -5, aprovacao: -1 });
     noticiar(m, `Senado rejeita ${escolhido.nome}: ${vaga.cargo}.`);
     // A vaga volta depois de três meses, tempo de reorganizar a base no Senado.
-    if (m.mes + 3 <= MESES) m.vagasReabertas.push({ id: vaga.id, mes: m.mes + 3 });
+    if (m.mes + 3 <= m.limite) m.vagasReabertas.push({ id: vaga.id, mes: m.mes + 3 });
   }
   m.pendencia = {
     tipo: "resultado-indicacao",
@@ -719,7 +780,55 @@ export function indicar(original: Mandato, contexto: Contexto, escolhido: OpcaoI
 export function fecharPendencia(original: Mandato): Mandato {
   const m = structuredClone(original);
   m.pendencia = null;
-  m.fase = "gestao";
+  m.fase = m.cassado ? "fim" : "gestao";
+  return m;
+}
+
+// Para barrar o impeachment, o governo precisa de 172 deputados ou, no Senado, de 28 senadores.
+export function defenderImpeachment(original: Mandato, contexto: Contexto, defesa: string): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "impeachment") return m;
+  const escolha = DEFESAS_IMPEACHMENT.find((d) => d.id === defesa) ?? DEFESAS_IMPEACHMENT[0];
+  aplicar(m, escolha.efeito);
+  // Com o governo impopular, a base se desfaz: parlamentar não quer afundar junto.
+  const apoio = escolha.bonus - Math.max(0, 35 - m.aprovacao) * 0.012;
+  const camara = votar(m, contexto, { economia: 50, camara: 172, senado: 0 }, apoio).camara;
+  if (camara.aprovado) {
+    aplicar(m, { congresso: 2 });
+    noticiar(m, "A Câmara barra o pedido de impeachment.");
+    m.pendencia = {
+      tipo: "resultado-indicacao",
+      titulo: "O impeachment foi barrado na Câmara",
+      texto: "Votos do governo contra a abertura do processo. O governo precisava de 172",
+      sim: camara.sim,
+      nao: camara.nao,
+    };
+    return m;
+  }
+  const senado = votar(m, contexto, { economia: 50, camara: 0, senado: 28 }, apoio).senado;
+  const sobreviveu = Boolean(senado?.aprovado);
+  m.cassado = !sobreviveu;
+  noticiar(m, sobreviveu ? "O Senado absolve o governo no impeachment." : "O Senado aprova o impeachment.");
+  m.pendencia = {
+    tipo: "resultado-indicacao",
+    titulo: sobreviveu ? "O Senado salvou o seu mandato" : "O seu mandato foi cassado",
+    texto: "Votos do governo no Senado. O governo precisava de 28",
+    sim: senado?.sim ?? 0,
+    nao: senado?.nao ?? 0,
+  };
+  return m;
+}
+
+export function registrarReeleicao(original: Mandato, votos: number, venceu: boolean): Mandato {
+  const m = structuredClone(original);
+  m.reeleicao = { votos, venceu };
+  if (venceu) {
+    m.limite = MESES * 2;
+    m.mes += 1;
+    m.acoes = ACOES_POR_MES;
+    m.fase = "gestao";
+    noticiar(m, `Reeleição: o segundo mandato começa com ${Math.round(m.aprovacao)}% de aprovação.`);
+  }
   return m;
 }
 

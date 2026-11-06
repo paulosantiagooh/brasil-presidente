@@ -16,10 +16,11 @@ const formatoPercentual = new Intl.NumberFormat("pt-BR", {
 type Props = {
   turno: Turno;
   nomes: Disputante[];
+  ano: number;
   aoConcluir: () => void;
 };
 
-export function Apuracao({ turno, nomes, aoConcluir }: Props) {
+export function Apuracao({ turno, nomes, ano, aoConcluir }: Props) {
   const [apurados, setApurados] = useState(0);
   const concluir = useRef(aoConcluir);
 
@@ -56,7 +57,7 @@ export function Apuracao({ turno, nomes, aoConcluir }: Props) {
 
   return (
     <section className="apuracao" aria-labelledby="titulo-apuracao">
-      <p className="sobretitulo">{turno.numero}º turno · Eleição 2026 · Simulação</p>
+      <p className="sobretitulo">{turno.numero}º turno · Eleição {ano} · Simulação</p>
       <h1 id="titulo-apuracao" className="titulo-tela">
         Apuração
       </h1>

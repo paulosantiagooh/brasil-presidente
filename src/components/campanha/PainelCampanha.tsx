@@ -60,7 +60,7 @@ export function PainelCampanha({ partida, campanha, candidato }: Props) {
 
   return (
     <section className="campanha" aria-labelledby="titulo-campanha">
-      <p className="sobretitulo">Eleição {partida.cenario}</p>
+      <p className="sobretitulo">{partida.ciclo === 2 ? "Reeleição 2030" : `Eleição ${partida.cenario}`}</p>
       <h1 id="titulo-campanha" className="titulo-tela">
         {encerrada ? "Fim da campanha" : `Semana ${campanha.semana} de ${SEMANAS}`}
       </h1>
