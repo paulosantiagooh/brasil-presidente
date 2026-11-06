@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { tocar } from "@/lib/sons";
+import { CenaAnimada } from "../cenas/CenaAnimada";
 import { executarAcao, type Campanha } from "@/lib/campanha";
 import type { Candidato } from "@/lib/candidato";
 import {
@@ -110,6 +111,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
     const participa = jogadorNaDisputa(eleicao);
     return (
       <section className="campanha" aria-labelledby="titulo-resultado">
+        <CenaAnimada cena="urna" legenda="As urnas falaram" chave={`turno-${partida.id}-${ano}`} />
         <p className="sobretitulo">1º turno · Eleição {ano} · Simulação</p>
         <h1 id="titulo-resultado" className="titulo-tela">
           {participa ? "Você está no segundo turno" : "Você ficou fora do segundo turno"}
@@ -222,6 +224,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
   return (
     <section className="campanha" aria-labelledby="titulo-final">
       {venceu && <Confete />}
+      <CenaAnimada cena={venceu ? "fogos" : "derrota"} legenda={venceu ? "Noite de vitória" : "A noite da derrota"} chave={`eleicao-${partida.id}-${ano}`} />
       <p className="sobretitulo">Resultado final · Eleição {ano} · Simulação</p>
       <h1 id="titulo-final" className="titulo-tela">
         {venceu ? "Você venceu a eleição" : `Vitória de ${vencedor.nome}`}

@@ -1,9 +1,11 @@
 import type { Campanha } from "./campanha";
 import type { Candidato } from "./candidato";
+import type { TipoCena } from "./cenas";
 import { CARTA_RUAS, CARTAS, COMENTARIOS, CONQUISTAS, METAS_BASE, TITULOS_LEGADO, USUARIOS, type Carta } from "./drama";
 import type { Eleicao } from "./eleicao";
-import type { Pessoa } from "./pessoas";
-import { AREAS, calcularBalanco, custoDoOrcamento, estimarVotos, pastasDoPartido, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
+import { dadosDoVice } from "./candidato";
+import { AREAS, calcularBalanco, custoDoOrcamento, estimarVotos, ministeriosAtivos, pastasDoPartido, pessoaPorId, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
+import { POLITICOS, semAcento, type Pessoa } from "./pessoas";
 import {
   ACOES_DIPLOMATICAS,
   AREAS_MEDIDA,
@@ -21,6 +23,7 @@ import {
   PROGRAMAS_SEGURANCA,
   PROJETOS_MANDATO,
   TONS_PRONUNCIAMENTO,
+  STF,
   VAGAS,
   type Efeito,
   type EventoMandato,
@@ -76,7 +79,10 @@ export type SituacaoEstatal = {
   controle: "estatal" | "capital-aberto" | "privatizada" | "fundida";
   gestao: "politica" | "tecnica";
   presidente: string | null;
+  vaga?: boolean;
 };
+
+export type Nomeacao = { nome: string; tipo: "ministerio" | "estatal" | "indicacao"; id: string };
 
 export type Registro = {
   mes: number; aprovacao: number; pib: number; ipca: number; selic: number; desemprego: number; divida: number; dolar: number;
@@ -174,6 +180,8 @@ export type Mandato = {
   estataisNovas: { id: string; nome: string; listada: boolean; valor: number }[];
   drama: Drama;
   pessoaReal?: boolean;
+  nomeacao?: Nomeacao | null;
+  cena?: TipoCena | null;
 };
 
 export type Contexto = { governo: Governo; candidato: Candidato };
@@ -501,7 +509,7 @@ export type Acao =
   | { tipo: "pronunciamento"; tom: string; texto: string }
   | { tipo: "estatal-criar"; nome: string }
   | { tipo: "estatal-fundir"; de: string; para: string }
-  | { tipo: "reforma"; ministerio: string; nome: string; tecnico: boolean }
+  | { tipo: "reforma"; id: string; ministerio: string; nome: string; tecnico: boolean }
   | { tipo: "diplomacia"; parceiro: string; acao: string }
   | { tipo: "seguranca"; id: string }
   | { tipo: "divida"; acao: "alongar" | "amortizar" | "emitir" };
@@ -522,6 +530,117 @@ export function obrasAtivas(m: Mandato) {
 
 export function podeIniciarObra(m: Mandato) {
   return obrasAtivas(m).length < LIMITE_OBRAS;
+}
+
+// Quem tem mandato fixo (STF, PGR e Banco Central) não pode ser nomeado para outro cargo.
+export function nomesComMandato(m: Mandato) {
+  const nomes = new Set<string>();
+  const aposentados = new Set(VAGAS.filter((v) => v.sai && v.mes <= m.mes).map((v) => v.sai));
+  for (const ministro of STF) if (!aposentados.has(ministro.nome)) nomes.add(ministro.nome);
+  const ultimoPorCargo = new Set<string>();
+  for (const indicado of m.indicados) {
+    if (!indicado.aprovado) continue;
+    if (indicado.vaga.startsWith("stf-")) nomes.add(indicado.nome);
+    else if (!ultimoPorCargo.has(indicado.cargo)) {
+      ultimoPorCargo.add(indicado.cargo);
+      nomes.add(indicado.nome);
+    }
+  }
+  return nomes;
+}
+
+// Pessoas que podem ser nomeadas agora: fora ficam a chapa e quem tem mandato fixo.
+export function disponiveis(m: Mandato, contexto: Contexto) {
+  const fora = nomesComMandato(m);
+  const vice = dadosDoVice(contexto.candidato)?.nome;
+  return POLITICOS.filter((p) => !fora.has(p.nome) && p.nome !== vice && p.nome !== contexto.candidato.nomeUrna);
+}
+
+// Motivo para recusar um nome escrito à mão.
+export function nomeImpedido(m: Mandato, contexto: Contexto, nome: string) {
+  const alvo = semAcento(nome.trim());
+  if (alvo === semAcento(contexto.candidato.nomeUrna)) return "Você não pode nomear a si mesmo.";
+  if (alvo === semAcento(dadosDoVice(contexto.candidato)?.nome ?? "")) return "Quem é vice não pode ocupar outro cargo.";
+  if ([...nomesComMandato(m)].some((n) => semAcento(n) === alvo)) return "Essa pessoa já tem um mandato fixo.";
+  return null;
+}
+
+export function ondeEsta(m: Mandato, g: Governo, nome: string) {
+  const alvo = semAcento(nome);
+  const pasta = ministeriosAtivos(g).find((p) => semAcento(pessoaPorId(g.ministros[p.id])?.nome ?? "") === alvo);
+  if (pasta) return pasta.nome;
+  const estatal = listaEstatais(m).find((e) => semAcento(m.estatais[e.id]?.presidente ?? "") === alvo);
+  return estatal ? `presidência: ${estatal.nome}` : null;
+}
+
+// Depois de uma nomeação, a pessoa sai de qualquer outro cargo, e a vaga fica aberta.
+export function resolverNomeacao(governo: Governo, original: Mandato) {
+  const nomeacao = original.nomeacao;
+  if (!nomeacao) return { governo, mandato: original };
+  const m = structuredClone(original);
+  const g = structuredClone(governo);
+  const alvo = semAcento(nomeacao.nome);
+  for (const pasta of Object.keys(g.ministros)) {
+    const mesmoCargo = nomeacao.tipo === "ministerio" && pasta === nomeacao.id;
+    if (!mesmoCargo && semAcento(pessoaPorId(g.ministros[pasta])?.nome ?? "") === alvo) {
+      g.ministros[pasta] = null;
+      noticiar(m, `${nomeacao.nome} deixa o ministério, e a pasta fica vaga.`);
+    }
+  }
+  for (const estatal of listaEstatais(m)) {
+    const situacao = m.estatais[estatal.id];
+    const mesmoCargo = nomeacao.tipo === "estatal" && estatal.id === nomeacao.id;
+    if (!mesmoCargo && semAcento(situacao.presidente ?? "") === alvo) {
+      situacao.presidente = null;
+      situacao.vaga = true;
+      noticiar(m, `${nomeacao.nome} deixa a presidência da ${estatal.nome}.`);
+    }
+  }
+  m.nomeacao = null;
+  return { governo: g, mandato: m };
+}
+
+// Partidas antigas podem ter a mesma pessoa em dois cargos: o cargo repetido da estatal fica vago.
+export function limparRepetidos(g: Governo, m: Mandato): Mandato {
+  const vistos = new Set(ministeriosAtivos(g).map((p) => semAcento(pessoaPorId(g.ministros[p.id])?.nome ?? "")));
+  const estatais = { ...m.estatais };
+  let mudou = false;
+  for (const [id, situacao] of Object.entries(m.estatais)) {
+    if (!situacao.presidente || situacao.gestao === "tecnica") continue;
+    const nome = semAcento(situacao.presidente);
+    if (vistos.has(nome)) {
+      estatais[id] = { ...situacao, presidente: null, vaga: true };
+      mudou = true;
+    }
+    vistos.add(nome);
+  }
+  return mudou ? { ...m, estatais } : m;
+}
+
+export type VagaAberta = { tipo: "ministerio" | "estatal"; id: string; nome: string };
+
+export function vagasAbertas(m: Mandato, g: Governo): VagaAberta[] {
+  const pastas = ministeriosAtivos(g)
+    .filter((p) => !g.ministros[p.id])
+    .map((p): VagaAberta => ({ tipo: "ministerio", id: p.id, nome: p.nome }));
+  const empresas = listaEstatais(m)
+    .filter((e) => m.estatais[e.id].vaga && m.estatais[e.id].controle !== "privatizada" && m.estatais[e.id].controle !== "fundida")
+    .map((e): VagaAberta => ({ tipo: "estatal", id: e.id, nome: e.nome }));
+  return [...pastas, ...empresas];
+}
+
+// Preencher uma vaga aberta é obrigatório e não gasta ação.
+// Um nome técnico do jogo pertence só àquele cargo, então não tira ninguém de outro lugar.
+export function preencherVaga(original: Mandato, vaga: VagaAberta, nome: string, tecnico: boolean, ficticio = false): Mandato {
+  const m = structuredClone(original);
+  if (vaga.tipo === "estatal") {
+    m.estatais[vaga.id].presidente = nome;
+    m.estatais[vaga.id].vaga = false;
+    m.estatais[vaga.id].gestao = tecnico ? "tecnica" : "politica";
+  }
+  if (!ficticio) m.nomeacao = { nome, tipo: vaga.tipo, id: vaga.id };
+  noticiar(m, `${nome} assume: ${vaga.nome}.`);
+  return m;
 }
 
 export function listaEstatais(m: Mandato) {
@@ -590,7 +709,22 @@ export function colocarEmVotacao(original: Mandato, contexto: Contexto): Mandato
   return m;
 }
 
+const CENA_DA_ACAO: Partial<Record<Acao["tipo"], TipoCena>> = {
+  obra: "obra",
+  "obra-real": "obra",
+  diplomacia: "aviao",
+  seguranca: "policia",
+  pronunciamento: "imprensa",
+  reforma: "assinatura",
+  "estatal-presidente": "assinatura",
+};
+
 export function executar(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
+  const novo = fazerAcao(original, contexto, acao);
+  return novo.acoes < original.acoes ? { ...novo, cena: CENA_DA_ACAO[acao.tipo] ?? null } : novo;
+}
+
+function fazerAcao(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
   const m = structuredClone(original);
   if (m.acoes <= 0 || m.fase !== "gestao") return m;
 
@@ -645,7 +779,9 @@ export function executar(original: Mandato, contexto: Contexto, acao: Acao): Man
     const estatal = m.estatais[acao.id];
     if (!dados || !estatal) return m;
     estatal.presidente = acao.nome;
+    estatal.vaga = false;
     estatal.gestao = acao.tecnico ? "tecnica" : "politica";
+    m.nomeacao = { nome: acao.nome, tipo: "estatal", id: acao.id };
     aplicar(m, acao.tecnico ? { "e.confianca": 1, congresso: -1 } : { "e.confianca": -1.5, congresso: 2 });
     noticiar(m, `${acao.nome} assume a presidência: ${dados.nome}.`);
   }
@@ -671,6 +807,7 @@ export function executar(original: Mandato, contexto: Contexto, acao: Acao): Man
   if (acao.tipo === "reforma") {
     aplicar(m, acao.tecnico ? { congresso: -1 } : { congresso: 1 });
     m.gestao = limitar(m.gestao + (acao.tecnico ? 1 : -0.5));
+    m.nomeacao = { nome: acao.nome, tipo: "ministerio", id: acao.id };
     noticiar(m, `Reforma ministerial: ${acao.nome} assume ${acao.ministerio}.`);
   }
 
@@ -873,6 +1010,7 @@ export function aprovacaoDoGrupo(m: Mandato, grupo: string) {
 export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   const m = structuredClone(original);
   if (m.fase !== "gestao") return m;
+  m.cena = null;
   const anterior = m.historico[m.historico.length - 1];
 
   for (const mp of m.mps.filter((item) => item.mes <= m.mes)) {
@@ -1009,6 +1147,7 @@ export function indicar(original: Mandato, contexto: Contexto, escolhido: OpcaoI
   m.indicados.unshift({ vaga: vaga.id, cargo: vaga.cargo, nome: escolhido.nome, mes: m.mes, aprovado: senado.aprovado });
   if (senado.aprovado) {
     aplicar(m, escolhido.efeito);
+    m.nomeacao = { nome: escolhido.nome, tipo: "indicacao", id: vaga.id };
     noticiar(m, `Senado aprova ${escolhido.nome}: ${vaga.cargo}.`);
   } else {
     aplicar(m, { congresso: -5, aprovacao: -1 });

@@ -2045,6 +2045,12 @@ label.botao:has(+ .arquivo:focus-visible) {
   }
 }
 
+.aviso-cargo {
+  color: var(--aviso);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .tela:has(.apuracao) {
   width: min(100%, 64rem);
 }
@@ -2235,6 +2241,118 @@ label.botao:has(+ .arquivo:focus-visible) {
 
   .logotipo-cargo {
     font-size: 4.2rem;
+  }
+}
+
+.cena {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 1rem;
+  border: 1px solid var(--linha-forte);
+  border-radius: 8px;
+  background: #000;
+}
+
+.cena-tela {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.cena-faixa {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+  animation: cena-faixa 0.45s 0.5s both;
+}
+
+.cena-selo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 0.55rem;
+  background: #c8281e;
+  color: #fff;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cena-texto {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  background: rgb(7 16 18 / 88%);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.cena-aviso {
+  position: absolute;
+  top: 6%;
+  left: 0.5rem;
+  color: rgb(255 255 255 / 72%);
+  font-family: var(--fonte-dado), monospace;
+  font-size: 0.62rem;
+  text-shadow: 0 1px 2px #000;
+}
+
+.cena-progresso {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: rgb(255 255 255 / 16%);
+}
+
+.cena-progresso span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--turquesa);
+}
+
+.cena-rever {
+  position: absolute;
+  top: 5%;
+  right: 0.4rem;
+  min-height: 34px;
+  padding: 0.15rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 6px;
+  background: rgb(7 16 18 / 78%);
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.cena-rever:hover {
+  background: var(--superficie-alta);
+}
+
+.botao-musica {
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.botao-musica[aria-pressed="false"] {
+  color: var(--texto-suave);
+}
+
+@keyframes cena-faixa {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
   }
 }
 

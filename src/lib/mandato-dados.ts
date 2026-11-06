@@ -296,6 +296,21 @@ export const STF: Ministro[] = [
 export const CADEIRA_VAGA_STF =
   "A 11ª cadeira, de Luís Roberto Barroso, está vaga desde outubro de 2025. Em abril de 2026, o Senado rejeitou a indicação feita para ela.";
 
+const TECNICOS_NOVAS = [
+  "Dra. Clara Nunes Vieira",
+  "Dr. Hélio Prado Matos",
+  "Eng. Sônia Rocha Lemos",
+  "Dr. Caio Teles Moura",
+  "Dra. Irene Paes Duarte",
+  "Eng. Murilo Sales Rangel",
+];
+
+// Cada estatal tem o seu nome técnico: assim ele nunca ocupa dois cargos.
+export function tecnicoDaEstatal(id: string) {
+  const soma = [...id].reduce((total, letra, i) => total + letra.charCodeAt(0) * (i + 1), 0);
+  return TECNICOS_ESTATAIS[id] ?? TECNICOS_NOVAS[soma % TECNICOS_NOVAS.length];
+}
+
 export const TECNICOS_ESTATAIS: Record<string, string> = {
   petrobras: "Eng. Marcela Duarte Guedes",
   bb: "Otávio Pimentel Aragão",

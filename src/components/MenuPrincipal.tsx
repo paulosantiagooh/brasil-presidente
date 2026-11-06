@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { lerConfig } from "@/lib/config";
+import { Trilha } from "./Trilha";
 import { criarPartida, formatarData, marcarComoJogada, usePartidas } from "@/lib/partidas";
 import { Janela } from "./Janela";
 import { PainelConfiguracoes } from "./PainelConfiguracoes";
@@ -28,6 +29,7 @@ export function MenuPrincipal() {
 
   return (
     <>
+      <Trilha nome="abertura" />
       <nav className="menu" aria-label="Menu principal">
         <button type="button" className="item-menu item-principal" onClick={novoJogo}>
           <span className="item-rotulo">Novo jogo</span>

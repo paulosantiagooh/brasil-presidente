@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cenaDoAcontecimento } from "@/lib/cenas";
 import { PERSONAGENS } from "@/lib/drama";
 import { tocar } from "@/lib/sons";
+import { CenaAnimada } from "../cenas/CenaAnimada";
 
 function iniciais(nome: string) {
   return nome
@@ -63,6 +65,7 @@ function Relogio({ segundos, aoAcabar }: { segundos: number; aoAcabar: () => voi
 }
 
 type Props = {
+  id: string;
   quem: string;
   titulo: string;
   texto: string;
@@ -72,7 +75,7 @@ type Props = {
   aoEscolher: (indice: number | null) => void;
 };
 
-export function CartaDrama({ quem, titulo, texto, capitulo, urgente, opcoes, aoEscolher }: Props) {
+export function CartaDrama({ id, quem, titulo, texto, capitulo, urgente, opcoes, aoEscolher }: Props) {
   useEffect(() => {
     if (urgente) tocar("urgente");
   }, [urgente]);
@@ -80,6 +83,7 @@ export function CartaDrama({ quem, titulo, texto, capitulo, urgente, opcoes, aoE
   return (
     <section className={urgente ? "carta carta-urgente" : "carta"} aria-labelledby="titulo-carta">
       {urgente && <p className="faixa-urgente">Urgente</p>}
+      <CenaAnimada cena={cenaDoAcontecimento(id, titulo)} chave={`carta-${id}`} />
       {capitulo && <p className="sobretitulo">{capitulo}</p>}
       <h1 id="titulo-carta" className="titulo-tela">
         {titulo}

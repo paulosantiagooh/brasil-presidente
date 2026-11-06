@@ -8,6 +8,7 @@ import {
   MINISTERIOS,
   ministeriosAtivos,
   NOME_ATRIBUTO_MINISTRO,
+  pastaDaPessoa,
   pessoaPorId,
   preencherMinisterio,
   type AtributosMinistro,
@@ -49,12 +50,19 @@ function valorDaSituacao(g: Governo, ministerio: Ministerio) {
 export function PassoMinisterios({ governo, candidato, nomesFora, atualizar }: Props) {
   const [aberto, setAberto] = useState<Ministerio | null>(null);
   const ativos = ministeriosAtivos(governo);
-  const opcoes = aberto ? candidatosAoMinisterio(governo, candidato, aberto, nomesFora) : [];
+  const opcoes = aberto ? candidatosAoMinisterio(governo, candidato, aberto, nomesFora, true) : [];
 
   function escolher(pessoa: Pessoa) {
     if (!aberto) return;
     const id = aberto.id;
-    atualizar((g) => ({ ...g, ministros: { ...g.ministros, [id]: pessoa.id } }));
+    // Ninguém acumula pastas: quem muda de ministério deixa a anterior vaga.
+    atualizar((g) => ({
+      ...g,
+      ministros: {
+        ...Object.fromEntries(Object.entries(g.ministros).map(([m, p]) => [m, p === pessoa.id ? null : p])),
+        [id]: pessoa.id,
+      },
+    }));
     setAberto(null);
   }
 
@@ -142,7 +150,17 @@ export function PassoMinisterios({ governo, candidato, nomesFora, atualizar }: P
             pessoas={opcoes}
             selecionado={aberto ? governo.ministros[aberto.id] : null}
             aoEscolher={escolher}
-            detalhe={(pessoa) => <Atributos pessoa={pessoa} candidato={candidato} />}
+            detalhe={(pessoa) => {
+              const pasta = pastaDaPessoa(governo, pessoa.id);
+              return (
+                <>
+                  {pasta && pasta.id !== aberto?.id && (
+                    <span className="aviso-cargo">Hoje em {pasta.nome}. Se vier para cá, essa pasta fica vaga.</span>
+                  )}
+                  <Atributos pessoa={pessoa} candidato={candidato} />
+                </>
+              );
+            }}
           />
         </div>
       </Janela>

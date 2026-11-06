@@ -3,13 +3,24 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { NOME_DIFICULDADE } from "@/lib/config";
-import { candidatoDaPartida, formatarData, iniciarCampanha, usePartidas } from "@/lib/partidas";
+import type { NomeTrilha } from "@/lib/musica";
+import { candidatoDaPartida, formatarData, iniciarCampanha, usePartidas, type Partida } from "@/lib/partidas";
 import { PainelCampanha } from "./campanha/PainelCampanha";
 import { CriacaoCandidato } from "./criacao/CriacaoCandidato";
 import { TelaEleicao } from "./eleicao/TelaEleicao";
 import { TelaGoverno } from "./governo/TelaGoverno";
 import { TelaMandato } from "./mandato/TelaMandato";
 import { FichaCandidato } from "./criacao/FichaCandidato";
+import { BotaoMusica, Trilha } from "./Trilha";
+
+function trilhaDaPartida(partida: Partida): NomeTrilha {
+  if (partida.etapa === "campanha" || partida.etapa === "eleicao") return "campanha";
+  if (partida.etapa !== "mandato" || !partida.mandato) return "abertura";
+  const { pendencia, drama, fase } = partida.mandato;
+  if (fase === "fim") return "abertura";
+  const urgente = pendencia?.tipo === "impeachment" || (pendencia?.tipo === "carta" && Boolean(pendencia.carta.urgente));
+  return urgente || drama.pressao >= 60 ? "crise" : "mandato";
+}
 
 export function TelaPartida() {
   const id = useSearchParams().get("id");
@@ -47,6 +58,7 @@ export function TelaPartida() {
 
   return (
     <>
+      <Trilha nome={trilhaDaPartida(partida)} />
       <header className="cabecalho-tela">
         <Link className="botao" href="/">
           ‹ Menu
@@ -55,6 +67,7 @@ export function TelaPartida() {
           {partida.nome} · {NOME_DIFICULDADE[partida.dificuldade]} · Salva às{" "}
           {formatarData(partida.atualizadaEm).split(" às ")[1]}
         </p>
+        <BotaoMusica />
       </header>
 
       {partida.etapa === "criacao-candidato" && <CriacaoCandidato partida={partida} />}

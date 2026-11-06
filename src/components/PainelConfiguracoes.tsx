@@ -8,6 +8,7 @@ import {
   type Config,
   type Dificuldade,
 } from "@/lib/config";
+import { atualizarMusica } from "@/lib/musica";
 import { apagarTodasAsPartidas, usePartidas } from "@/lib/partidas";
 
 type Opcao<T extends string> = { valor: T; rotulo: string };
@@ -61,6 +62,16 @@ const SONS: Opcao<Config["som"]>[] = [
   { valor: "desligado", rotulo: "Desligado" },
 ];
 
+const MUSICAS: Opcao<Config["musica"]>[] = [
+  { valor: "ligada", rotulo: "Ligada" },
+  { valor: "desligada", rotulo: "Desligada" },
+];
+
+const CENAS: Opcao<Config["cenas"]>[] = [
+  { valor: "ligadas", rotulo: "Ligadas" },
+  { valor: "desligadas", rotulo: "Desligadas" },
+];
+
 export function PainelConfiguracoes() {
   const config = useConfig();
   const partidas = usePartidas();
@@ -100,6 +111,25 @@ export function PainelConfiguracoes() {
         valor={config.som}
         opcoes={SONS}
         aoMudar={(som) => mudarConfig({ som })}
+      />
+      <Escolha
+        nome="musica"
+        titulo="Música"
+        ajuda="A trilha original do jogo muda em cada fase e nas crises."
+        valor={config.musica}
+        opcoes={MUSICAS}
+        aoMudar={(musica) => {
+          mudarConfig({ musica });
+          atualizarMusica();
+        }}
+      />
+      <Escolha
+        nome="cenas"
+        titulo="Cenas dos acontecimentos"
+        ajuda="Mini vídeos de 5 segundos em crises, votações e resultados."
+        valor={config.cenas}
+        opcoes={CENAS}
+        aoMudar={(cenas) => mudarConfig({ cenas })}
       />
 
       <section className="ajuste">

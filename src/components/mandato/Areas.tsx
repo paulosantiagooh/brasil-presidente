@@ -8,13 +8,17 @@ import {
   aprovacaoDoGrupo,
   calcularMedida,
   custoAnualDasObras,
+  disponiveis,
   custoDoOrcamentoDoMandato,
   executar,
   mudarOrcamento,
   nomeDoMes,
   LIMITE_OBRAS,
   listaEstatais,
+  nomeImpedido,
+  nomesComMandato,
   obrasAtivas,
+  ondeEsta,
   orcamentoAberto,
   podeIniciarObra,
   promessasDoMandato,
@@ -39,14 +43,15 @@ import {
   PROGRAMAS_SEGURANCA,
   PROJETOS_MANDATO,
   STF,
-  TECNICOS_ESTATAIS,
+  tecnicoDaEstatal,
   TONS_PRONUNCIAMENTO,
   VAGAS,
   type AreaDoProjeto,
 } from "@/lib/mandato-dados";
-import { POLITICOS } from "@/lib/pessoas";
 import { JORNAL } from "@/lib/drama";
 import { BuscaPessoa } from "../BuscaPessoa";
+import { CenaAnimada } from "../cenas/CenaAnimada";
+import { cenaDoAcontecimento } from "@/lib/cenas";
 import { Congresso3D } from "../congresso/Congresso3D";
 import { Janela } from "../Janela";
 import { Barras, Bloco, numero, Numeros, Serie } from "./Comum";
@@ -72,6 +77,7 @@ export function Painel({ mandato, campanha }: { mandato: Mandato; campanha: Camp
     <div className="areas">
       {manchete && (
         <article className="jornal">
+          <CenaAnimada cena={cenaDoAcontecimento("manchete", manchete.titulo)} legenda={manchete.titulo} chave={`manchete-${mandato.mes}`} />
           <p className="jornal-nome">{JORNAL}</p>
           <h2>{manchete.titulo}</h2>
           <p>{manchete.subtitulo}</p>
@@ -419,10 +425,11 @@ export function PainelEstatais(props: Props) {
   const lista = listaEstatais(mandato);
   const ativas = lista.filter((e) => !["privatizada", "fundida"].includes(mandato.estatais[e.id].controle));
   const estatalAberta = lista.find((e) => e.id === aberta);
-  const tecnico = estatalAberta ? (TECNICOS_ESTATAIS[estatalAberta.id] ?? "Dra. Clara Nunes Vieira") : "";
+  const tecnico = estatalAberta ? tecnicoDaEstatal(estatalAberta.id) : "";
   const [novaEstatal, setNovaEstatal] = useState("");
   const [fundirDe, setFundirDe] = useState("correios");
   const [fundirCom, setFundirCom] = useState("serpro");
+  const impedido = nomeLivre.trim().length >= 3 ? nomeImpedido(mandato, props.contexto, nomeLivre) : null;
 
   function nomear(nome: string, tecnico: boolean) {
     if (aberta) fazer({ tipo: "estatal-presidente", id: aberta, nome, tecnico });
@@ -535,12 +542,20 @@ export function PainelEstatais(props: Props) {
                 <span className="rotulo">Escrever outro nome</span>
                 <input value={nomeLivre} maxLength={60} autoComplete="off" onChange={(e) => setNomeLivre(e.target.value)} />
               </label>
-              <button type="button" className="botao" disabled={nomeLivre.trim().length < 3} onClick={() => nomear(nomeLivre.trim(), true)}>
+              {impedido && <p className="erro">{impedido}</p>}
+              <button type="button" className="botao" disabled={nomeLivre.trim().length < 3 || Boolean(impedido)} onClick={() => nomear(nomeLivre.trim(), true)}>
                 Nomear
               </button>
             </div>
             <p className="rotulo">Ou escolha um político</p>
-            <BuscaPessoa pessoas={POLITICOS} aoEscolher={(pessoa) => nomear(pessoa.nome, false)} />
+            <BuscaPessoa
+              pessoas={disponiveis(mandato, props.contexto)}
+              aoEscolher={(pessoa) => nomear(pessoa.nome, false)}
+              detalhe={(pessoa) => {
+                const cargo = ondeEsta(mandato, props.contexto.governo, pessoa.nome);
+                return cargo ? <span className="aviso-cargo">Hoje em {cargo}. Sai de lá se aceitar.</span> : null;
+              }}
+            />
           </div>
         )}
       </Janela>
@@ -715,7 +730,7 @@ export function PainelMinistros(props: Props & { aoTrocar: (ministerio: string, 
   function trocar(pessoa: Pessoa) {
     if (!aberto) return;
     aoTrocar(aberto.id, pessoa);
-    fazer({ tipo: "reforma", ministerio: aberto.nome, nome: pessoa.nome, tecnico: pessoa.tipo === "tecnico" });
+    fazer({ tipo: "reforma", id: aberto.id, ministerio: aberto.nome, nome: pessoa.nome, tecnico: pessoa.tipo === "tecnico" });
     setAberto(null);
   }
 
@@ -744,9 +759,15 @@ export function PainelMinistros(props: Props & { aoTrocar: (ministerio: string, 
         {aberto && (
           <BuscaPessoa
             key={aberto.id}
-            pessoas={candidatosAoMinisterio(governo, candidato, aberto, [])}
+            pessoas={candidatosAoMinisterio(governo, candidato, aberto, [...nomesComMandato(props.mandato)], true)}
             selecionado={governo.ministros[aberto.id]}
             aoEscolher={trocar}
+            detalhe={(pessoa) => {
+              const cargo = ondeEsta(props.mandato, governo, pessoa.nome);
+              return cargo && pessoa.id !== governo.ministros[aberto.id] ? (
+                <span className="aviso-cargo">Hoje em {cargo}. Esse cargo fica vago.</span>
+              ) : null;
+            }}
           />
         )}
       </Janela>

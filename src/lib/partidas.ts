@@ -8,7 +8,7 @@ import type { Dificuldade } from "./config";
 import { iniciarEleicao, type Eleicao } from "./eleicao";
 import { criarGoverno, type Governo } from "./governo";
 import { criarLoja } from "./loja";
-import { criarDrama, criarMandato, registrarReeleicao, type Mandato } from "./mandato";
+import { criarDrama, criarMandato, limparRepetidos, registrarReeleicao, resolverNomeacao, type Mandato } from "./mandato";
 
 export type Partida = {
   versao: 1;
@@ -30,17 +30,15 @@ export type Partida = {
 // Partidas salvas antes das novidades do mandato ganham os campos que faltam.
 function completar(partida: Partida): Partida {
   if (!partida.mandato) return partida;
-  return {
-    ...partida,
-    mandato: {
-      ...partida.mandato,
-      limite: partida.mandato.limite ?? 48,
-      cassado: partida.mandato.cassado ?? false,
-      impeachmentMes: partida.mandato.impeachmentMes ?? 0,
-      estataisNovas: partida.mandato.estataisNovas ?? [],
-      drama: partida.mandato.drama ?? criarDrama(),
-    },
+  const mandato = {
+    ...partida.mandato,
+    limite: partida.mandato.limite ?? 48,
+    cassado: partida.mandato.cassado ?? false,
+    impeachmentMes: partida.mandato.impeachmentMes ?? 0,
+    estataisNovas: partida.mandato.estataisNovas ?? [],
+    drama: partida.mandato.drama ?? criarDrama(),
   };
+  return { ...partida, mandato: partida.governo ? limparRepetidos(partida.governo, mandato) : mandato };
 }
 
 const loja = criarLoja<Partida[]>("bp:partidas", [], (bruto) =>
@@ -177,7 +175,10 @@ export function concluirReeleicao(id: string) {
 }
 
 export function atualizarMandato(id: string, mudar: (mandato: Mandato) => Mandato) {
-  mudarPartida(id, (p) => (p.mandato ? { mandato: mudar(p.mandato) } : {}));
+  mudarPartida(id, (p) => {
+    if (!p.mandato || !p.governo) return {};
+    return resolverNomeacao(p.governo, mudar(p.mandato));
+  });
 }
 
 export function apagarPartida(id: string) {

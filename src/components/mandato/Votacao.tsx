@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { tocar } from "@/lib/sons";
+import { CenaAnimada } from "../cenas/CenaAnimada";
 import type { Casa } from "@/lib/governo";
 import {
   colocarEmVotacao,
@@ -104,6 +105,9 @@ export function TelaVotacao({ mandato, contexto, atualizar }: Props) {
         <h1 id="titulo-voto" className="titulo-tela">
           {proposta.nome}
         </h1>
+        {terminou && (
+          <CenaAnimada cena={resultado.aprovado ? "aprovado" : "rejeitado"} chave={`voto-${mandato.mes}-${proposta.nome}`} />
+        )}
         <Painel titulo="Câmara dos Deputados" casa={resultado.camara} partidos={Math.min(passo, naCamara)} />
         {resultado.senado && passo >= naCamara && (
           <Painel titulo="Senado Federal" casa={resultado.senado} partidos={passo - naCamara} />

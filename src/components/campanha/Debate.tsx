@@ -11,6 +11,7 @@ import {
 } from "@/lib/campanha";
 import type { Candidato } from "@/lib/candidato";
 import { tocar } from "@/lib/sons";
+import { CenaAnimada } from "../cenas/CenaAnimada";
 
 const AVISO_SEGUNDOS = 10;
 
@@ -110,6 +111,7 @@ export function TelaDebate({ campanha, candidato, atualizar }: Props) {
 
   return (
     <section className="debate" aria-labelledby="titulo-debate">
+      {debate.indice === 0 && !debate.resultado && <CenaAnimada cena="debate" chave={`debate-${campanha.semana}`} />}
       <p className="sobretitulo">
         {debate.tipo === "debate"
           ? `Debate na TV · Pergunta ${debate.indice + 1} de ${debate.perguntas.length}`

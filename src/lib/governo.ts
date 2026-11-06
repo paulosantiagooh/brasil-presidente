@@ -296,8 +296,15 @@ export function pessoaPorId(id: string | null): Pessoa | null {
   return ministerio ? tecnicoDe(ministerio) : null;
 }
 
-// Quem está na chapa ou enfrentou o jogador no segundo turno não entra no ministério.
-export function candidatosAoMinisterio(g: Governo, c: Candidato, ministerio: Ministerio, nomesFora: string[]) {
+// Quem está na chapa, enfrentou o jogador no segundo turno ou tem mandato fixo não entra no ministério.
+// Com `trocar`, quem já é ministro aparece na lista: ao assumir aqui, deixa a outra pasta vaga.
+export function candidatosAoMinisterio(
+  g: Governo,
+  c: Candidato,
+  ministerio: Ministerio,
+  nomesFora: string[],
+  trocar = false,
+) {
   const ocupados = new Set(
     Object.entries(g.ministros)
       .filter(([id, pessoa]) => pessoa && id !== ministerio.id)
@@ -305,9 +312,14 @@ export function candidatosAoMinisterio(g: Governo, c: Candidato, ministerio: Min
   );
   const vice = dadosDoVice(c)?.nome;
   const politicos = POLITICOS.filter(
-    (p) => !ocupados.has(p.id) && p.nome !== vice && p.nome !== c.nomeUrna && !nomesFora.includes(p.nome),
+    (p) => (trocar || !ocupados.has(p.id)) && p.nome !== vice && p.nome !== c.nomeUrna && !nomesFora.includes(p.nome),
   );
   return [tecnicoDe(ministerio), ...politicos];
+}
+
+export function pastaDaPessoa(g: Governo, pessoaId: string) {
+  const id = Object.keys(g.ministros).find((m) => g.ministros[m] === pessoaId);
+  return MINISTERIOS.find((m) => m.id === id) ?? null;
 }
 
 function posicaoDoPartido(sigla: string, c: Candidato) {

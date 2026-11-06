@@ -65,6 +65,7 @@ export function PainelCampanha({ partida, campanha, candidato }: Props) {
     return (
       <CartaDrama
         key={cartaDaSemana.id}
+        id={cartaDaSemana.id}
         quem={cartaDaSemana.quem}
         titulo={cartaDaSemana.titulo}
         texto={cartaDaSemana.texto}

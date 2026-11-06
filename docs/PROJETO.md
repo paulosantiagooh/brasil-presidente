@@ -304,3 +304,10 @@ Uma tela real e navegável, não apenas uma imagem conceitual:
 - Fundo e identidade visual inspirados nos vídeos.
 
 Depois construiremos a criação do candidato e conectaremos os sistemas de campanha. Cada módulo deve funcionar antes de ser integrado aos demais.
+
+## Decisões de novembro de 2026: cargos, cenas e música
+
+- Uma pessoa ocupa um só cargo. Quem assume outro sai do anterior, e o presidente indica o substituto antes de seguir.
+- Quem está na chapa, no STF, na PGR ou no Banco Central não pode ser nomeado para outro cargo.
+- Os acontecimentos têm cenas animadas de 5 segundos, com som, desenhadas pelo próprio jogo e só com silhuetas anônimas.
+- A música é original, tocada pelo navegador, e muda entre abertura, campanha, governo e crise.

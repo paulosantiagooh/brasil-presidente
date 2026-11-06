@@ -8,25 +8,34 @@ import type { Governo } from "@/lib/governo";
 import {
   ACOES_POR_MES,
   defenderImpeachment,
+  disponiveis,
   encerrarMes,
   fecharPendencia,
   indicacaoLivre,
   indicacaoPolitica,
   indicar,
   nomeDoMes,
+  nomeImpedido,
+  ondeEsta,
+  preencherVaga,
   notaDoGoverno,
   promessasDoMandato,
   responderCarta,
   responderEvento,
+  vagasAbertas,
   type Contexto,
   type Mandato,
+  type VagaAberta,
 } from "@/lib/mandato";
 import { CONQUISTAS } from "@/lib/drama";
-import { DEFESAS_IMPEACHMENT } from "@/lib/mandato-dados";
+import { DEFESAS_IMPEACHMENT, tecnicoDaEstatal } from "@/lib/mandato-dados";
 import { tocar } from "@/lib/sons";
 import { atualizarGoverno, atualizarMandato, disputarReeleicao, type Partida } from "@/lib/partidas";
-import { POLITICOS } from "@/lib/pessoas";
+import { pessoaPorId } from "@/lib/governo";
+import type { Pessoa } from "@/lib/pessoas";
 import { BuscaPessoa } from "../BuscaPessoa";
+import { CenaAnimada } from "../cenas/CenaAnimada";
+import { cenaDoAcontecimento } from "@/lib/cenas";
 import {
   Painel,
   PainelCongresso,
@@ -70,6 +79,66 @@ type Props = {
   candidato: Candidato;
 };
 
+function TelaVagaAberta(props: {
+  mandato: Mandato;
+  contexto: Contexto;
+  vaga: VagaAberta;
+  aoNomear: (nome: string, pessoa: Pessoa | null, tecnico: boolean, ficticio?: boolean) => void;
+}) {
+  const { mandato, contexto, vaga, aoNomear } = props;
+  const [nome, setNome] = useState("");
+  const tecnico =
+    vaga.tipo === "ministerio"
+      ? pessoaPorId(`tecnico-${vaga.id}`)
+      : null;
+  const nomeTecnico = tecnico?.nome ?? tecnicoDaEstatal(vaga.id);
+  const impedido = nome.trim().length >= 3 ? nomeImpedido(mandato, contexto, nome) : null;
+
+  return (
+    <section className="boletim" aria-labelledby="titulo-vaga">
+      <CenaAnimada cena="gabinete" legenda={`Vaga aberta: ${vaga.nome}`} chave={`vaga-${mandato.mes}-${vaga.id}`} />
+      <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Cargo vago</p>
+      <h1 id="titulo-vaga" className="titulo-tela">
+        {vaga.nome}
+      </h1>
+      <p className="texto-tela">
+        Esse cargo ficou vago, e o governo não anda sem alguém no lugar. Quem você indica? A nomeação não gasta
+        ação.
+      </p>
+      <button type="button" className="acao espaco-topo" onClick={() => aoNomear(nomeTecnico, tecnico, true, true)}>
+        <strong>{nomeTecnico}</strong>
+        <span className="ajuda">Nome técnico (personagem fictício).</span>
+      </button>
+      {vaga.tipo === "estatal" && (
+        <div className="bloco espaco-topo">
+          <label className="campo">
+            <span className="rotulo">Escrever outro nome</span>
+            <input value={nome} maxLength={60} autoComplete="off" onChange={(e) => setNome(e.target.value)} />
+          </label>
+          {impedido && <p className="erro">{impedido}</p>}
+          <button
+            type="button"
+            className="botao"
+            disabled={nome.trim().length < 3 || Boolean(impedido)}
+            onClick={() => aoNomear(nome.trim(), null, true)}
+          >
+            Nomear
+          </button>
+        </div>
+      )}
+      <h2 className="titulo-bloco espaco-topo">Nomes políticos</h2>
+      <BuscaPessoa
+        pessoas={disponiveis(mandato, contexto)}
+        aoEscolher={(pessoa) => aoNomear(pessoa.nome, pessoa, false)}
+        detalhe={(pessoa) => {
+          const cargo = ondeEsta(mandato, contexto.governo, pessoa.nome);
+          return cargo ? <span className="aviso-cargo">Hoje em {cargo}. Esse cargo também fica vago.</span> : null;
+        }}
+      />
+    </section>
+  );
+}
+
 function TelaIndicacao(props: {
   mandato: Mandato;
   contexto: Contexto;
@@ -79,6 +148,8 @@ function TelaIndicacao(props: {
   const [nome, setNome] = useState("");
   if (mandato.pendencia?.tipo !== "indicacao") return null;
   const { vaga } = mandato.pendencia;
+  const nomesOcupados = new Set(mandato.indicados.filter((i) => i.aprovado).map((i) => i.nome));
+  const impedido = nome.trim().length >= 3 ? nomeImpedido(mandato, contexto, nome) : null;
 
   return (
     <section className="boletim" aria-labelledby="titulo-indicacao">
@@ -92,7 +163,7 @@ function TelaIndicacao(props: {
       <h2 className="titulo-bloco espaco-topo">Nomes técnicos</h2>
       <p className="ajuda">Personagens fictícios, com mais chance no Senado.</p>
       <div className="respostas">
-        {vaga.opcoes.map((opcao) => (
+        {vaga.opcoes.filter((opcao) => !nomesOcupados.has(opcao.nome)).map((opcao) => (
           <button
             key={opcao.nome}
             type="button"
@@ -108,10 +179,11 @@ function TelaIndicacao(props: {
           <span className="rotulo">Escrever outro nome</span>
           <input value={nome} maxLength={60} autoComplete="off" onChange={(e) => setNome(e.target.value)} />
         </label>
+        {impedido && <p className="erro">{impedido}</p>}
         <button
           type="button"
           className="botao"
-          disabled={nome.trim().length < 3}
+          disabled={nome.trim().length < 3 || Boolean(impedido)}
           onClick={() => atualizar((m) => indicar(m, contexto, indicacaoLivre(nome.trim())))}
         >
           Indicar
@@ -124,8 +196,12 @@ function TelaIndicacao(props: {
             Uma escolha política agrada a base, mas reduz a confiança nas instituições. Cenário hipotético.
           </p>
           <BuscaPessoa
-            pessoas={POLITICOS}
+            pessoas={disponiveis(mandato, contexto)}
             aoEscolher={(pessoa) => atualizar((m) => indicar(m, contexto, indicacaoPolitica(pessoa, contexto)))}
+            detalhe={(pessoa) => {
+              const cargo = ondeEsta(mandato, contexto.governo, pessoa.nome);
+              return cargo ? <span className="aviso-cargo">Hoje em {cargo}. Se o Senado aprovar, esse cargo fica vago.</span> : null;
+            }}
           />
         </>
       )}
@@ -147,6 +223,7 @@ function TelaPendencia(props: {
     return (
       <CartaDrama
         key={carta.id}
+        id={carta.id}
         quem={carta.quem}
         titulo={carta.titulo}
         texto={carta.texto}
@@ -173,6 +250,7 @@ function TelaPendencia(props: {
   if (pendencia.tipo === "impeachment") {
     return (
       <section className="boletim" aria-labelledby="titulo-impeachment">
+        <CenaAnimada cena="impeachment" chave={`impeachment-${mandato.mes}`} />
         <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Crise política</p>
         <h1 id="titulo-impeachment" className="titulo-tela">
           Pedido de impeachment
@@ -211,6 +289,11 @@ function TelaPendencia(props: {
   if (pendencia.tipo === "resultado-indicacao") {
     return (
       <section className="boletim" aria-labelledby="titulo-pendencia">
+        <CenaAnimada
+          cena={pendencia.texto.includes("precisava") ? "rejeitado" : "tribunal"}
+          legenda="O Senado decide a indicação"
+          chave={`sabatina-${mandato.mes}`}
+        />
         <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Sabatina no Senado</p>
         <h1 id="titulo-pendencia" className="titulo-tela">
           {pendencia.titulo}
@@ -234,6 +317,7 @@ function TelaPendencia(props: {
 
   return (
     <section className="boletim" aria-labelledby="titulo-pendencia">
+      <CenaAnimada cena={cenaDoAcontecimento(evento.id, evento.titulo)} chave={`evento-${mandato.mes}-${evento.id}`} />
       <p className="sobretitulo">
         {nomeDoMes(mandato.mes)} · {evento.tema}
       </p>
@@ -346,6 +430,11 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
 
   return (
     <section className="campanha" aria-labelledby="titulo-fim">
+      <CenaAnimada
+        cena={mandato.cassado || perdeu || legado.pontos < 50 ? "derrota" : "fogos"}
+        legenda={mandato.cassado ? "O mandato chega ao fim antes da hora" : "O país julga o governo"}
+        chave={`fim-${mandato.mes}`}
+      />
       <p className="sobretitulo">{mandato.cassado ? nomeDoMes(mandato.mes) : `Dezembro de ${segundo ? 2034 : 2030}`} · Fim do mandato · Simulação</p>
       <h1 id="titulo-fim" className="titulo-tela">
         {mandato.cassado
@@ -510,8 +599,27 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
   }
   if (mandato.fase === "pendencia") return <TelaPendencia {...props} />;
 
+  const vaga = vagasAbertas(mandato, governo)[0];
+  if (vaga) {
+    return (
+      <TelaVagaAberta
+        key={vaga.id}
+        mandato={mandato}
+        contexto={contexto}
+        vaga={vaga}
+        aoNomear={(nome, pessoa, tecnico, ficticio) => {
+          if (vaga.tipo === "ministerio" && pessoa) {
+            atualizarGoverno(partida.id, (g) => ({ ...g, ministros: { ...g.ministros, [vaga.id]: pessoa.id } }));
+          }
+          atualizar((m) => preencherVaga(m, vaga, nome, tecnico, ficticio));
+        }}
+      />
+    );
+  }
+
   return (
     <section className="campanha" aria-labelledby="titulo-mandato">
+      {mandato.mes === 1 && !mandato.cena && <CenaAnimada cena="posse" chave={`posse-${partida.id}`} />}
       <p className="sobretitulo">
         Mês {mandato.mes} de {mandato.limite} · Simulação
       </p>
@@ -569,6 +677,7 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
         </span>
       </div>
 
+      {mandato.cena && <CenaAnimada key={mandato.acoes} cena={mandato.cena} chave={`acao-${mandato.mes}-${mandato.acoes}`} rolar />}
       {mandato.resumoMes && (
         <p className="resumo-mes" role="status">
           <strong>{nomeDoMes(mandato.resumoMes.mes)}:</strong> aprovação {sinal(mandato.resumoMes.aprovacao)} · PIB{" "}

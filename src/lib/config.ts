@@ -10,6 +10,8 @@ export type Config = {
   texto: "normal" | "grande";
   movimento: "normal" | "reduzido";
   som: "ligado" | "desligado";
+  musica: "ligada" | "desligada";
+  cenas: "ligadas" | "desligadas";
 };
 
 export const CONFIG_PADRAO: Config = {
@@ -17,6 +19,8 @@ export const CONFIG_PADRAO: Config = {
   texto: "normal",
   movimento: "normal",
   som: "ligado",
+  musica: "ligada",
+  cenas: "ligadas",
 };
 
 export const NOME_DIFICULDADE: Record<Dificuldade, string> = {
