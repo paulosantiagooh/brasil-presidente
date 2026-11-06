@@ -251,7 +251,7 @@ export function PassoBalanco(props: { governo: Governo; candidato: Candidato; el
       </section>
       <p className="ajuda aviso-simulacao">
         Cenário hipotético: as pessoas reais citadas não participam do jogo nem aprovaram esta
-        simulação. A administração completa é a próxima parte em construção.
+        simulação.
       </p>
     </div>
   );

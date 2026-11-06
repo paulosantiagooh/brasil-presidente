@@ -7,6 +7,7 @@ import type { Dificuldade } from "./config";
 import { iniciarEleicao, type Eleicao } from "./eleicao";
 import { criarGoverno, type Governo } from "./governo";
 import { criarLoja } from "./loja";
+import { criarMandato, type Mandato } from "./mandato";
 
 export type Partida = {
   versao: 1;
@@ -14,11 +15,12 @@ export type Partida = {
   nome: string;
   cenario: 2030;
   dificuldade: Dificuldade;
-  etapa: "criacao-candidato" | "campanha" | "eleicao" | "governo";
+  etapa: "criacao-candidato" | "campanha" | "eleicao" | "governo" | "mandato";
   candidato?: Candidato;
   campanha?: Campanha;
   eleicao?: Eleicao;
   governo?: Governo;
+  mandato?: Mandato;
   criadaEm: number;
   atualizadaEm: number;
 };
@@ -115,6 +117,25 @@ export function formarGoverno(id: string) {
 
 export function atualizarGoverno(id: string, mudar: (governo: Governo) => Governo) {
   mudarPartida(id, (p) => (p.governo ? { governo: mudar(p.governo) } : {}));
+}
+
+export function comecarMandato(id: string) {
+  mudarPartida(id, (p) =>
+    p.governo && p.campanha && p.eleicao
+      ? {
+          etapa: "mandato",
+          mandato: criarMandato(
+            { governo: p.governo, candidato: candidatoDaPartida(p) },
+            p.campanha,
+            p.eleicao,
+          ),
+        }
+      : {},
+  );
+}
+
+export function atualizarMandato(id: string, mudar: (mandato: Mandato) => Mandato) {
+  mudarPartida(id, (p) => (p.mandato ? { mandato: mudar(p.mandato) } : {}));
 }
 
 export function apagarPartida(id: string) {

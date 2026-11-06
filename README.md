@@ -8,7 +8,7 @@ O cenário é uma simulação: o jogo não presume candidatos nem resultados rea
 
 ## Estado atual
 
-Etapas 1 a 5 do plano, que completam a primeira versão jogável: tela inicial navegável, partidas salvas no aparelho, configurações, criação do candidato, campanha de cinco semanas, eleição em dois turnos e formação do governo, com ministérios, Congresso, orçamento, primeiras decisões e a primeira votação. Tudo funciona no computador e no celular. A próxima etapa é a administração completa.
+Etapas 1 a 6 do plano: criação do candidato, campanha de cinco semanas, eleição em dois turnos, formação do governo e um mandato jogável de 48 meses, com economia, orçamento, sociedade, segurança, obras, estatais, Congresso, instituições, diplomacia, eventos e relatórios. Tudo funciona no computador e no celular. A próxima etapa é a dos aplicativos, das contas e da sincronização.
 
 Partidos e políticos reais aparecem em um cenário hipotético. Ações, pesquisas e resultados são inventados pelo jogo e não preveem 2030.
 

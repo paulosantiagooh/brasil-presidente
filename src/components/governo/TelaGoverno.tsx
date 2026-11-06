@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import type { Campanha } from "@/lib/campanha";
 import type { Candidato } from "@/lib/candidato";
 import type { Eleicao } from "@/lib/eleicao";
 import { errosDoPassoGoverno, PASSOS_GOVERNO, type Governo } from "@/lib/governo";
-import { atualizarGoverno, type Partida } from "@/lib/partidas";
+import { atualizarGoverno, comecarMandato, type Partida } from "@/lib/partidas";
 import { PassoCongresso } from "./PassoCongresso";
 import { PassoMinisterios } from "./PassoMinisterios";
 import { PassoBalanco, PassoDecisoes, PassoOrcamento, PassoVotacao } from "./PassosFinais";
@@ -112,9 +111,16 @@ export function TelaGoverno({ partida, governo, campanha, eleicao, candidato }: 
             Avançar
           </button>
         ) : (
-          <Link className="botao botao-destaque" href="/">
-            Voltar ao menu
-          </Link>
+          <button
+            type="button"
+            className="botao botao-destaque"
+            onClick={() => {
+              comecarMandato(partida.id);
+              window.scrollTo({ top: 0 });
+            }}
+          >
+            Começar o mandato
+          </button>
         )}
       </footer>
     </section>

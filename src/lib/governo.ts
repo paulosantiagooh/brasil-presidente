@@ -446,7 +446,24 @@ export function custoDoOrcamento(g: Governo) {
   return AREAS.reduce((soma, area) => soma + area.custo * g.orcamento[area.id], 0);
 }
 
-function votarNaCasa(g: Governo, c: Candidato, projeto: Projeto, casa: keyof Bancada, necessarios: number | null): Casa {
+type Proposta = { economia: number; camara: number | null; senado: number | null };
+
+// A relação com o Congresso ao longo do mandato soma ou tira chance de apoio em todos os partidos.
+export function votarProposta(original: Governo, c: Candidato, proposta: Proposta, bonus: number) {
+  const g = structuredClone(original);
+  const camara = votarNaCasa(g, c, proposta, "deputados", proposta.camara, bonus);
+  const senado = camara.aprovado ? votarNaCasa(g, c, proposta, "senadores", proposta.senado, bonus) : null;
+  return { semente: g.semente, camara, senado, aprovado: Boolean(senado?.aprovado) };
+}
+
+// Indicações passam por voto no Senado: maioria absoluta, 41 votos.
+export function votarIndicacao(original: Governo, c: Candidato, bonus: number) {
+  const g = structuredClone(original);
+  const senado = votarNaCasa(g, c, { economia: 50, camara: null, senado: 41 }, "senadores", 41, bonus);
+  return { semente: g.semente, senado };
+}
+
+function votarNaCasa(g: Governo, c: Candidato, projeto: Proposta, casa: keyof Bancada, necessarios: number | null, bonus = 0): Casa {
   const partidos: VotoPartido[] = [];
   let sim = 0;
   let nao = 0;
@@ -454,7 +471,7 @@ function votarNaCasa(g: Governo, c: Candidato, projeto: Projeto, casa: keyof Ban
     if (bancada[casa] === 0) continue;
     const posicao = posicaoDoPartido(sigla, c);
     const afinidade = (1 - Math.abs(posicao.economia - projeto.economia) / 50) * 0.1;
-    const chance = limitar(chanceDoPartido(g, c, sigla) + afinidade + (sortear(g) - 0.5) * 0.16, 0, 1);
+    const chance = limitar(chanceDoPartido(g, c, sigla) + afinidade + bonus + (sortear(g) - 0.5) * 0.16, 0, 1);
     const presentes = Math.round(bancada[casa] * 0.95);
     const favoraveis = Math.round(presentes * chance);
     partidos.push({ sigla, sim: favoraveis, nao: presentes - favoraveis });

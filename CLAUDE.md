@@ -13,5 +13,6 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - Pessoas reais: nunca invente crime, escândalo, fala ou opinião, não use foto delas sem licença e mantenha o aviso de simulação nas telas. Eventos negativos inventados só para o personagem do jogador.
 - Atributos de ministros reais vêm do tipo de cargo e do alinhamento na partida, nunca de uma nota pessoal. Técnicos são personagens fictícios.
 - As bancadas de `src/lib/governo.ts` partem da Câmara eleita em 2026 e da projeção do Senado para 2027.
+- O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e indicados a cargos são fictícios. Eventos nunca citam pessoas reais.
 - O mapa eleitoral vem da malha oficial do IBGE (`scripts/gerar-mapa-ufs.mjs`). Gráficos seguem as cores `--candidato-*`: a cor acompanha a candidatura, nunca a posição.
 - Todo layout tem que funcionar em celular de 375 px de largura, sem rolagem horizontal.
