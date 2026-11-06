@@ -703,7 +703,8 @@ export function indicar(original: Mandato, contexto: Contexto, escolhido: OpcaoI
   } else {
     aplicar(m, { congresso: -5, aprovacao: -1 });
     noticiar(m, `Senado rejeita ${escolhido.nome}: ${vaga.cargo}.`);
-    if (m.mes < MESES) m.vagasReabertas.push({ id: vaga.id, mes: m.mes + 1 });
+    // A vaga volta depois de três meses, tempo de reorganizar a base no Senado.
+    if (m.mes + 3 <= MESES) m.vagasReabertas.push({ id: vaga.id, mes: m.mes + 3 });
   }
   m.pendencia = {
     tipo: "resultado-indicacao",

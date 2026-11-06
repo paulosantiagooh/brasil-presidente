@@ -405,7 +405,7 @@ export function votarProposta(original: Governo, c: Candidato, proposta: Propost
 // Indicações passam por voto secreto no Senado: maioria absoluta, 41 votos, com menos fidelidade.
 export function votarIndicacao(original: Governo, c: Candidato, bonus: number) {
   const g = structuredClone(original);
-  const senado = votarNaCasa(g, c, { economia: 50, camara: null, senado: 41 }, "senadores", 41, bonus - 0.16);
+  const senado = votarNaCasa(g, c, { economia: 50, camara: null, senado: 41 }, "senadores", 41, bonus - 0.11);
   return { semente: g.semente, senado };
 }
 
