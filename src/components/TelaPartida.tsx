@@ -7,6 +7,7 @@ import { candidatoDaPartida, formatarData, iniciarCampanha, usePartidas } from "
 import { PainelCampanha } from "./campanha/PainelCampanha";
 import { CriacaoCandidato } from "./criacao/CriacaoCandidato";
 import { TelaEleicao } from "./eleicao/TelaEleicao";
+import { TelaGoverno } from "./governo/TelaGoverno";
 import { FichaCandidato } from "./criacao/FichaCandidato";
 
 export function TelaPartida() {
@@ -71,6 +72,15 @@ export function TelaPartida() {
           partida={partida}
           eleicao={partida.eleicao}
           campanha={partida.campanha}
+          candidato={candidato}
+        />
+      )}
+      {partida.etapa === "governo" && partida.campanha && partida.eleicao && partida.governo && (
+        <TelaGoverno
+          partida={partida}
+          governo={partida.governo}
+          campanha={partida.campanha}
+          eleicao={partida.eleicao}
           candidato={candidato}
         />
       )}

@@ -16,7 +16,7 @@ import {
   votarSegundoTurno,
   type Eleicao,
 } from "@/lib/eleicao";
-import { atualizarCampanha, atualizarEleicao, type Partida } from "@/lib/partidas";
+import { atualizarCampanha, atualizarEleicao, formarGoverno, type Partida } from "@/lib/partidas";
 import { TelaDebate } from "../campanha/Debate";
 import { disputantes } from "../campanha/PainelCampanha";
 import { Apuracao } from "./Apuracao";
@@ -197,7 +197,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
       </h1>
       <p className="texto-tela">
         {venceu
-          ? `${vencedor.nome} recebeu ${percentual.format(percentualValido(final, 0))}% dos votos válidos. A formação do governo é a próxima parte em construção, e o jogo continua daqui quando ela estiver pronta.`
+          ? `${vencedor.nome} recebeu ${percentual.format(percentualValido(final, 0))}% dos votos válidos. Agora é hora de formar o governo.`
           : `Nesta partida, a candidatura de ${nomes[0].nome} terminou com ${percentual.format(percentualValido(totalDoTurno(eleicao.primeiro), 0))}% dos votos válidos no primeiro turno.`}
       </p>
 
@@ -222,9 +222,22 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
 
       <footer className="rodape-passo">
         <span />
-        <Link className="botao botao-destaque" href="/">
-          Voltar ao menu
-        </Link>
+        {venceu ? (
+          <button
+            type="button"
+            className="botao botao-destaque"
+            onClick={() => {
+              formarGoverno(partida.id);
+              window.scrollTo({ top: 0 });
+            }}
+          >
+            Formar o governo
+          </button>
+        ) : (
+          <Link className="botao botao-destaque" href="/">
+            Voltar ao menu
+          </Link>
+        )}
       </footer>
     </section>
   );

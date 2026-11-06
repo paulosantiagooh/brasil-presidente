@@ -1486,6 +1486,115 @@ label.botao:has(+ .arquivo:focus-visible) {
   text-align: left;
 }
 
+.lista-ministerios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.5rem;
+}
+
+.acao-vaga {
+  border-style: dashed;
+}
+
+.lista-estrutura {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 0.7rem;
+}
+
+.bloco summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.lista-pessoas {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.atributos-compactos {
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.atributos-compactos li {
+  grid-template-columns: 6.8rem minmax(0, 1fr) 1.7rem;
+  font-size: 0.78rem;
+}
+
+.plenarios {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.plenario {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.plenario svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cadeira-base {
+  background: var(--candidato-0);
+  fill: var(--candidato-0);
+}
+
+.cadeira-independente {
+  background: var(--texto-suave);
+  fill: var(--texto-suave);
+}
+
+.cadeira-oposicao {
+  background: var(--candidato-1);
+  fill: var(--candidato-1);
+}
+
+.legenda li > .cadeira-marca {
+  border-radius: 50%;
+}
+
+.placar-duplo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.tabela-partidos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.tabela-partidos th,
+.tabela-partidos td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--linha);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabela-partidos th:first-child,
+.tabela-partidos td:last-child:not(:nth-child(3)) {
+  text-align: left;
+}
+
+.lista-orcamento {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 0.8rem 1.5rem;
+}
+
+.lista-orcamento .barra-nome strong {
+  font-size: 0.78rem;
+}
+
 .tela:has(.apuracao) {
   width: min(100%, 64rem);
 }
@@ -1542,7 +1651,8 @@ label.botao:has(+ .arquivo:focus-visible) {
   .mapa-eleitoral,
   .pesquisas,
   .apuracao-corpo,
-  .resultado-colunas {
+  .resultado-colunas,
+  .plenarios {
     grid-template-columns: minmax(0, 1fr);
   }
 }
