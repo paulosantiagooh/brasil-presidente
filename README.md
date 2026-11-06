@@ -1,16 +1,14 @@
 # BRASIL: PRESIDENTE
 
-Simulador político e de administração pública. O jogador disputa a eleição presidencial de 2030, governa o Brasil por quatro anos e responde pelas consequências.
+Simulador político e de administração pública. O jogador disputa a eleição presidencial de 2026, governa o Brasil de 2027 a 2030 e responde pelas consequências.
 
-O cenário é uma simulação: o jogo não presume candidatos nem resultados reais de 2030.
+É uma história alternativa: políticos reais aparecem em um cenário hipotético, e ações, pesquisas e resultados são inventados pelo jogo.
 
 **Jogue agora:** https://paulosantiagooh.github.io/brasil-presidente/
 
 ## Estado atual
 
-Etapas 1 a 6 do plano: criação do candidato, campanha de cinco semanas, eleição em dois turnos, formação do governo e um mandato jogável de 48 meses, com economia, orçamento, sociedade, segurança, obras, estatais, Congresso, instituições, diplomacia, eventos e relatórios. Tudo funciona no computador e no celular. A próxima etapa é a dos aplicativos, das contas e da sincronização.
-
-Partidos e políticos reais aparecem em um cenário hipotético. Ações, pesquisas e resultados são inventados pelo jogo e não preveem 2030.
+Etapas 1 a 6 do plano: criação do candidato, campanha de cinco semanas, eleição em dois turnos, formação do governo e um mandato jogável de 48 meses, com medidas escritas pelo jogador, negociação e votação no Congresso, economia, orçamento, sociedade, segurança, obras, estatais, instituições, diplomacia, eventos, relatórios e balanço final. Tudo funciona no computador e no celular. A próxima etapa é a dos aplicativos, das contas e da sincronização.
 
 O documento completo do projeto está em [docs/PROJETO.md](docs/PROJETO.md).
 

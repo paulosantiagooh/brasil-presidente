@@ -9,7 +9,7 @@ A ideia é construir um jogo de estratégia política profundo, realista, intera
 ## 1. Conceito geral do jogo
 
 - Nome provisório: BRASIL: PRESIDENTE.
-- Cenário inicial: eleição presidencial de 2030.
+- Cenário inicial: eleição presidencial de 2026 (a versão 1.0 previa 2030).
 - Idioma: português brasileiro.
 - Jogabilidade: um jogador contra adversários controlados pelo jogo.
 - Dificuldade inicial: média.
@@ -21,7 +21,7 @@ A ideia é construir um jogo de estratégia política profundo, realista, intera
 
 O cenário de 2030 será uma simulação: não vamos presumir candidatos ou resultados eleitorais que ainda não são conhecidos.
 
-Decisão posterior do dono do projeto: partidos, adversários e vices usam nomes reais, sempre como cenário hipotético e com aviso de simulação.
+Decisões posteriores do dono do projeto: o jogo começa em 2026, em uma história alternativa. Partidos, adversários, vices, ministros e o STF usam nomes reais, sempre como cenário hipotético e com aviso de simulação. Debates têm mais de duas respostas, e o jogador pode escrever as próprias medidas.
 
 ## 2. Plataformas
 

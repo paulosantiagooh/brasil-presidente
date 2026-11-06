@@ -1,13 +1,16 @@
 import type { Campanha } from "./campanha";
-import { dadosDoVice, PARTIDOS, partidoDoCandidato, VICES, type Candidato } from "./candidato";
+import { dadosDoVice, PARTIDOS, partidoDoCandidato, siglaDoVice, type Candidato } from "./candidato";
 import { percentualValido, totalDoTurno, type Eleicao } from "./eleicao";
+import { politicoPorId, POLITICOS, type Pessoa, type TipoPessoa } from "./pessoas";
+
+export type { Pessoa };
 
 export const DEPUTADOS = 513;
 export const SENADORES = 81;
 
 type Bancada = { deputados: number; senadores: number };
 
-// Câmara eleita em 2026 e projeção do Senado para 2027. Serve de base para o Congresso simulado.
+// Câmara eleita em 2026 e projeção do Senado para 2027.
 const BANCADAS_2026: Record<string, Bancada> = {
   PL: { deputados: 121, senadores: 28 },
   PT: { deputados: 70, senadores: 9 },
@@ -31,60 +34,6 @@ const BANCADAS_2026: Record<string, Bancada> = {
   MISSÃO: { deputados: 1, senadores: 0 },
   "Sem partido": { deputados: 0, senadores: 1 },
 };
-
-export type TipoPessoa = "governo" | "senado" | "politico" | "tecnico";
-
-export type Pessoa = {
-  id: string;
-  nome: string;
-  sigla: string | null;
-  uf: string;
-  cargo: string;
-  tipo: TipoPessoa;
-};
-
-const eleito = (estado: string) => `Eleito em 2026 para o governo ${estado}.`;
-const eleita = (estado: string) => `Eleita em 2026 para o governo ${estado}.`;
-
-// Políticos reais, com cargo e partido conferidos em novembro de 2026, em um cenário hipotético.
-export const POLITICOS: Pessoa[] = [
-  { id: "tarcisio", nome: "Tarcísio de Freitas", sigla: "Republicanos", uf: "SP", cargo: eleito("de São Paulo"), tipo: "governo" },
-  { id: "cleitinho", nome: "Cleitinho Azevedo", sigla: "Republicanos", uf: "MG", cargo: eleito("de Minas Gerais"), tipo: "governo" },
-  { id: "pazolini", nome: "Lorenzo Pazolini", sigla: "Republicanos", uf: "ES", cargo: eleito("do Espírito Santo"), tipo: "governo" },
-  { id: "pivetta", nome: "Otaviano Pivetta", sigla: "Republicanos", uf: "MT", cargo: eleito("de Mato Grosso"), tipo: "governo" },
-  { id: "moro", nome: "Sérgio Moro", sigla: "PL", uf: "PR", cargo: eleito("do Paraná"), tipo: "governo" },
-  { id: "zucco", nome: "Zucco", sigla: "PL", uf: "RS", cargo: eleito("do Rio Grande do Sul"), tipo: "governo" },
-  { id: "jorginho", nome: "Jorginho Mello", sigla: "PL", uf: "SC", cargo: eleito("de Santa Catarina"), tipo: "governo" },
-  { id: "marcos-rogerio", nome: "Marcos Rogério", sigla: "PL", uf: "RO", cargo: eleito("de Rondônia"), tipo: "governo" },
-  { id: "raquel", nome: "Raquel Lyra", sigla: "PSD", uf: "PE", cargo: eleita("de Pernambuco"), tipo: "governo" },
-  { id: "braide", nome: "Eduardo Braide", sigla: "PSD", uf: "MA", cargo: eleito("do Maranhão"), tipo: "governo" },
-  { id: "mitidieri", nome: "Fábio Mitidieri", sigla: "PSD", uf: "SE", cargo: eleito("de Sergipe"), tipo: "governo" },
-  { id: "omar", nome: "Omar Aziz", sigla: "PSD", uf: "AM", cargo: eleito("do Amazonas"), tipo: "governo" },
-  { id: "riedel", nome: "Eduardo Riedel", sigla: "PP", uf: "MS", cargo: eleito("de Mato Grosso do Sul"), tipo: "governo" },
-  { id: "lucas-ribeiro", nome: "Lucas Ribeiro", sigla: "PP", uf: "PB", cargo: eleito("da Paraíba"), tipo: "governo" },
-  { id: "mailza", nome: "Mailza Assis", sigla: "PP", uf: "AC", cargo: eleita("do Acre"), tipo: "governo" },
-  { id: "celina", nome: "Celina Leão", sigla: "PP", uf: "DF", cargo: eleita("do Distrito Federal"), tipo: "governo" },
-  { id: "jeronimo", nome: "Jerônimo Rodrigues", sigla: "PT", uf: "BA", cargo: eleito("da Bahia"), tipo: "governo" },
-  { id: "elmano", nome: "Elmano de Freitas", sigla: "PT", uf: "CE", cargo: eleito("do Ceará"), tipo: "governo" },
-  { id: "fonteles", nome: "Rafael Fonteles", sigla: "PT", uf: "PI", cargo: eleito("do Piauí"), tipo: "governo" },
-  { id: "vilela", nome: "Daniel Vilela", sigla: "MDB", uf: "GO", cargo: eleito("de Goiás"), tipo: "governo" },
-  { id: "daniel-santos", nome: "Dr. Daniel Santos", sigla: "PODE", uf: "PA", cargo: eleito("do Pará"), tipo: "governo" },
-  { id: "jhc", nome: "JHC", sigla: "PSDB", uf: "AL", cargo: eleito("de Alagoas"), tipo: "governo" },
-  { id: "michelle", nome: "Michelle Bolsonaro", sigla: "PL", uf: "DF", cargo: "Eleita em 2026 para o Senado pelo Distrito Federal.", tipo: "senado" },
-  { id: "bia-kicis", nome: "Bia Kicis", sigla: "PL", uf: "DF", cargo: "Eleita em 2026 para o Senado pelo Distrito Federal.", tipo: "senado" },
-  { id: "lira", nome: "Arthur Lira", sigla: "PP", uf: "AL", cargo: "Eleito em 2026 para o Senado por Alagoas.", tipo: "senado" },
-  { id: "alckmin", nome: "Geraldo Alckmin", sigla: "PSB", uf: "SP", cargo: "Vice-presidente da República.", tipo: "politico" },
-  { id: "haddad", nome: "Fernando Haddad", sigla: "PT", uf: "SP", cargo: "Filiado ao PT.", tipo: "politico" },
-  { id: "camilo", nome: "Camilo Santana", sigla: "PT", uf: "CE", cargo: "Filiado ao PT.", tipo: "politico" },
-  { id: "boulos", nome: "Guilherme Boulos", sigla: "PSOL", uf: "SP", cargo: "Filiado ao PSOL.", tipo: "politico" },
-  { id: "tabata", nome: "Tabata Amaral", sigla: "PSB", uf: "SP", cargo: "Filiada ao PSB.", tipo: "politico" },
-  { id: "paes", nome: "Eduardo Paes", sigla: "PSD", uf: "RJ", cargo: "Disputou o governo do Rio de Janeiro em 2026.", tipo: "politico" },
-  { id: "dorinha", nome: "Professora Dorinha", sigla: "UNIÃO", uf: "TO", cargo: "Disputou o governo do Tocantins em 2026.", tipo: "politico" },
-  { id: "caiado", nome: "Ronaldo Caiado", sigla: "PSD", uf: "GO", cargo: "Disputou a Presidência em 2026.", tipo: "politico" },
-  { id: "zema", nome: "Romeu Zema", sigla: "NOVO", uf: "MG", cargo: "Disputou a Presidência em 2026.", tipo: "politico" },
-  { id: "renan", nome: "Renan Santos", sigla: "MISSÃO", uf: "SP", cargo: "Disputou a Presidência em 2026.", tipo: "politico" },
-  { id: "flavio", nome: "Flávio Bolsonaro", sigla: "PL", uf: "RJ", cargo: "Disputou a Presidência em 2026.", tipo: "politico" },
-];
 
 export type Ministerio = {
   id: string;
@@ -137,6 +86,7 @@ export const NOME_ATRIBUTO_MINISTRO: Record<keyof AtributosMinistro, string> = {
 const BASE_POR_TIPO: Record<TipoPessoa, Omit<AtributosMinistro, "fidelidade">> = {
   governo: { competencia: 70, popularidade: 60, negociacao: 60, eficiencia: 65, confiabilidade: 60 },
   senado: { competencia: 60, popularidade: 55, negociacao: 75, eficiencia: 55, confiabilidade: 60 },
+  deputado: { competencia: 55, popularidade: 50, negociacao: 70, eficiencia: 50, confiabilidade: 60 },
   politico: { competencia: 60, popularidade: 55, negociacao: 65, eficiencia: 55, confiabilidade: 60 },
   tecnico: { competencia: 85, popularidade: 30, negociacao: 35, eficiencia: 80, confiabilidade: 80 },
 };
@@ -166,7 +116,7 @@ export type Decisao = {
   id: string;
   tema: string;
   texto: string;
-  opcoes: [{ texto: string; efeito: EfeitoGoverno }, { texto: string; efeito: EfeitoGoverno }];
+  opcoes: { texto: string; efeito: EfeitoGoverno }[];
 };
 
 export const DECISOES: Decisao[] = [
@@ -177,6 +127,7 @@ export const DECISOES: Decisao[] = [
     opcoes: [
       { texto: "Aumento acima da inflação.", efeito: { aprovacao: 4, credibilidade: -3 } },
       { texto: "Reposição da inflação, para preservar as contas.", efeito: { aprovacao: -2, credibilidade: 4 } },
+      { texto: "Aumento moderado, com regra para os próximos anos.", efeito: { aprovacao: 1, credibilidade: 1 } },
     ],
   },
   {
@@ -186,6 +137,7 @@ export const DECISOES: Decisao[] = [
     opcoes: [
       { texto: "Argentina e Mercosul, para reforçar a região.", efeito: { aprovacao: 1, credibilidade: 1 } },
       { texto: "Grandes parceiros comerciais, para buscar investimentos.", efeito: { credibilidade: 2 } },
+      { texto: "Adiar viagens e focar nos problemas internos.", efeito: { aprovacao: 2, credibilidade: -1 } },
     ],
   },
   {
@@ -195,6 +147,7 @@ export const DECISOES: Decisao[] = [
     opcoes: [
       { texto: "Negociar projeto a projeto, abrindo espaço aos líderes.", efeito: { governabilidade: 5, aprovacao: -1 } },
       { texto: "Levar as pautas direto à população para pressionar os parlamentares.", efeito: { aprovacao: 3, governabilidade: -5 } },
+      { texto: "Dividir o poder: dar mais espaço aos partidos no governo.", efeito: { governabilidade: 7, credibilidade: -2, aprovacao: -2 } },
     ],
   },
 ];
@@ -276,30 +229,23 @@ function sortear(g: { semente: number }) {
 const limitar = (valor: number, minimo = 0, maximo = 100) =>
   Math.min(maximo, Math.max(minimo, valor));
 
-function retirarCadeiras(bancadas: Record<string, Bancada>, casa: keyof Bancada, quantidade: number, protegidos: string[]) {
+function retirarCadeiras(bancadas: Record<string, Bancada>, casa: keyof Bancada, quantidade: number, protegido: string) {
   for (let vez = 0; vez < quantidade; vez++) {
     const maior = Object.keys(bancadas)
-      .filter((sigla) => !protegidos.includes(sigla))
+      .filter((sigla) => sigla !== protegido)
       .sort((a, b) => bancadas[b][casa] - bancadas[a][casa])[0];
     bancadas[maior][casa] -= 1;
   }
 }
 
-// O Congresso do jogo parte do real e muda com a vitória da chapa.
+// O Congresso do jogo é o eleito em 2026. Só um partido criado pelo jogador ganha cadeiras.
 function montarBancadas(candidato: Candidato) {
   const bancadas = structuredClone(BANCADAS_2026);
-  const partido = partidoDoCandidato(candidato);
-  const vice = VICES.find((v) => v.id === candidato.viceId)?.sigla;
-  const sigla = partido?.sigla ?? "Sem partido";
-  bancadas[sigla] ??= { deputados: 0, senadores: 0 };
-
-  const ganhoDeputados = Math.max(12, Math.round(bancadas[sigla].deputados * 0.2));
-  const ganhoSenadores = Math.max(2, Math.round(bancadas[sigla].senadores * 0.2));
-  const protegidos = [sigla, ...(vice ? [vice] : [])];
-  bancadas[sigla].deputados += ganhoDeputados;
-  bancadas[sigla].senadores += ganhoSenadores;
-  retirarCadeiras(bancadas, "deputados", ganhoDeputados, protegidos);
-  retirarCadeiras(bancadas, "senadores", ganhoSenadores, protegidos);
+  const sigla = partidoDoCandidato(candidato)?.sigla ?? "Sem partido";
+  if (bancadas[sigla]) return bancadas;
+  bancadas[sigla] = { deputados: 12, senadores: 2 };
+  retirarCadeiras(bancadas, "deputados", 12, sigla);
+  retirarCadeiras(bancadas, "senadores", 2, sigla);
   return bancadas;
 }
 
@@ -344,7 +290,7 @@ function tecnicoDe(ministerio: Ministerio): Pessoa {
 
 export function pessoaPorId(id: string | null): Pessoa | null {
   if (!id) return null;
-  const politico = POLITICOS.find((p) => p.id === id);
+  const politico = politicoPorId(id);
   if (politico) return politico;
   const ministerio = MINISTERIOS.find((m) => `tecnico-${m.id}` === id);
   return ministerio ? tecnicoDe(ministerio) : null;
@@ -359,7 +305,7 @@ export function candidatosAoMinisterio(g: Governo, c: Candidato, ministerio: Min
   );
   const vice = dadosDoVice(c)?.nome;
   const politicos = POLITICOS.filter(
-    (p) => !ocupados.has(p.id) && p.nome !== vice && !nomesFora.includes(p.nome),
+    (p) => !ocupados.has(p.id) && p.nome !== vice && p.nome !== c.nomeUrna && !nomesFora.includes(p.nome),
   );
   return [tecnicoDe(ministerio), ...politicos];
 }
@@ -377,7 +323,7 @@ function distanciaDoPresidente(sigla: string, c: Candidato) {
 
 export function atributosDe(pessoa: Pessoa, c: Candidato): AtributosMinistro {
   const proprio = partidoDoCandidato(c)?.sigla;
-  const vice = VICES.find((v) => v.id === c.viceId)?.sigla;
+  const vice = siglaDoVice(c);
   let fidelidade = 75;
   if (pessoa.sigla === proprio) fidelidade = 90;
   else if (pessoa.sigla === vice) fidelidade = 80;
@@ -399,7 +345,7 @@ export function pastasDoPartido(g: Governo, sigla: string) {
 
 export function posicaoDoPartidoNoCongresso(g: Governo, c: Candidato, sigla: string): Posicao {
   const proprio = partidoDoCandidato(c)?.sigla;
-  const vice = VICES.find((v) => v.id === c.viceId)?.sigla;
+  const vice = siglaDoVice(c);
   if (sigla === proprio || sigla === vice || pastasDoPartido(g, sigla).length > 0) return "base";
   if (sigla === g.adversario) return "oposicao";
   if (sigla === "Sem partido") return "independente";
@@ -411,7 +357,7 @@ const CHANCE_DE_APOIO: Record<Posicao, number> = { base: 0.86, independente: 0.5
 function chanceDoPartido(g: Governo, c: Candidato, sigla: string) {
   const posicao = posicaoDoPartidoNoCongresso(g, c, sigla);
   if (posicao !== "base") return CHANCE_DE_APOIO[posicao];
-  const chapa = [partidoDoCandidato(c)?.sigla, VICES.find((v) => v.id === c.viceId)?.sigla];
+  const chapa = [partidoDoCandidato(c)?.sigla, siglaDoVice(c)];
   if (chapa.includes(sigla)) return CHANCE_DE_APOIO.base;
   // Bancada grande com pasta pequena entrega menos votos, e partido distante também.
   const peso = pastasDoPartido(g, sigla).reduce((soma, m) => soma + m.peso, 0);
@@ -456,10 +402,10 @@ export function votarProposta(original: Governo, c: Candidato, proposta: Propost
   return { semente: g.semente, camara, senado, aprovado: Boolean(senado?.aprovado) };
 }
 
-// Indicações passam por voto no Senado: maioria absoluta, 41 votos.
+// Indicações passam por voto secreto no Senado: maioria absoluta, 41 votos, com menos fidelidade.
 export function votarIndicacao(original: Governo, c: Candidato, bonus: number) {
   const g = structuredClone(original);
-  const senado = votarNaCasa(g, c, { economia: 50, camara: null, senado: 41 }, "senadores", 41, bonus);
+  const senado = votarNaCasa(g, c, { economia: 50, camara: null, senado: 41 }, "senadores", 41, bonus - 0.16);
   return { semente: g.semente, senado };
 }
 
@@ -482,6 +428,19 @@ function votarNaCasa(g: Governo, c: Candidato, projeto: Proposta, casa: keyof Ba
   return { sim, nao, necessarios, aprovado: necessarios === null ? sim > nao : sim >= necessarios, partidos };
 }
 
+// Previsão sem sorteio, usada na negociação antes do plenário.
+export function estimarVotos(g: Governo, c: Candidato, proposta: Proposta, bonus: number) {
+  const contar = (casa: keyof Bancada) =>
+    Math.round(
+      Object.entries(g.bancadas).reduce((soma, [sigla, bancada]) => {
+        const posicao = posicaoDoPartido(sigla, c);
+        const afinidade = (1 - Math.abs(posicao.economia - proposta.economia) / 50) * 0.1;
+        return soma + bancada[casa] * 0.95 * limitar(chanceDoPartido(g, c, sigla) + afinidade + bonus, 0, 1);
+      }, 0),
+    );
+  return { deputados: contar("deputados"), senadores: contar("senadores") };
+}
+
 export function votarProjeto(original: Governo, c: Candidato): Governo {
   const g = structuredClone(original);
   const projeto = PROJETOS.find((p) => p.id === g.projeto);
@@ -491,6 +450,8 @@ export function votarProjeto(original: Governo, c: Candidato): Governo {
   g.votacao = { projeto: projeto.id, camara, senado, aprovado: Boolean(senado?.aprovado) };
   return g;
 }
+
+const PREFERENCIA_NA_SUGESTAO: Record<TipoPessoa, number> = { governo: 0, politico: 1, senado: 2, deputado: 3, tecnico: 4 };
 
 export function preencherMinisterio(original: Governo, c: Candidato, nomesFora: string[]): Governo {
   const g = structuredClone(original);
@@ -508,7 +469,8 @@ export function preencherMinisterio(original: Governo, c: Candidato, nomesFora: 
       .sort(
         (a, b) =>
           pastasDoPartido(g, a.sigla as string).length - pastasDoPartido(g, b.sigla as string).length ||
-          deputados(b.sigla) - deputados(a.sigla),
+          deputados(b.sigla) - deputados(a.sigla) ||
+          PREFERENCIA_NA_SUGESTAO[a.tipo] - PREFERENCIA_NA_SUGESTAO[b.tipo],
       );
     const tecnica = ministerio.id === "fazenda" || ministerio.id === "defesa" || ministerio.id === "relacoes-exteriores";
     g.ministros[ministerio.id] = (tecnica ? opcoes[0] : (politicos[0] ?? opcoes[0])).id;

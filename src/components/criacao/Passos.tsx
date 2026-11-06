@@ -14,9 +14,11 @@ import {
   posicaoDasIdeologias,
   UFS,
   VICE_PROPRIO,
-  VICES,
+  viceDoCandidato,
   type Candidato,
 } from "@/lib/candidato";
+import { POLITICOS, semAcento } from "@/lib/pessoas";
+import { BuscaPessoa } from "../BuscaPessoa";
 import { CampoFoto } from "./CampoFoto";
 import { Campo, Cartao, Eixo, Selecao } from "./Campos";
 
@@ -51,7 +53,7 @@ export function PassoIdentidade({ c, mudar }: Props) {
           />
         </Campo>
         <div className="duas-colunas">
-          <Campo rotulo="Idade em 2030" ajuda={`Mínimo: ${IDADE_MINIMA}.`}>
+          <Campo rotulo="Idade em 2026" ajuda={`Mínimo: ${IDADE_MINIMA}.`}>
             <input
               inputMode="numeric"
               value={c.idade}
@@ -71,13 +73,6 @@ export function PassoIdentidade({ c, mudar }: Props) {
       </div>
     </div>
   );
-}
-
-function semAcento(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
 }
 
 export function PassoPartido({ c, mudar }: Props) {
@@ -279,38 +274,32 @@ export function PassoTrajetoria({ c, mudar }: Props) {
 
 export function PassoVice({ c, mudar }: Props) {
   const partido = partidoDoCandidato(c);
+  const vice = viceDoCandidato(c);
+  const proprio = c.viceId === VICE_PROPRIO;
   return (
     <div className="formulario">
       <p className="ajuda">
-        Nomes reais em um cenário hipotético: nenhuma dessas pessoas participa do jogo nem aprovou esta
-        simulação. Vice de outro partido forma uma aliança na chapa.
+        Escolha entre governadores, nomes nacionais e todos os deputados e senadores em exercício. Nomes
+        reais em um cenário hipotético: nenhuma dessas pessoas participa do jogo nem aprovou esta simulação.
       </p>
-      <fieldset className="grade-cartoes">
-        <legend className="rotulo">Vice-presidência</legend>
-        {VICES.map((vice) => (
-          <Cartao
-            key={vice.id}
-            nome="vice"
-            marcado={c.viceId === vice.id}
-            aoMarcar={() => mudar({ viceId: vice.id })}
-          >
-            <strong>{vice.nome}</strong>
-            <span className="dado">
-              {vice.sigla} · {vice.uf}
-              {partido && partido.sigla !== vice.sigla ? " · Aliança" : ""}
-            </span>
-            <span className="ajuda">{vice.perfil}</span>
-          </Cartao>
-        ))}
-        <Cartao
-          nome="vice"
-          marcado={c.viceId === VICE_PROPRIO}
-          aoMarcar={() => mudar({ viceId: VICE_PROPRIO })}
-        >
-          <strong>Escolher outra pessoa</strong>
-          <span className="ajuda">Escreva o nome de quem vai compor a chapa.</span>
-        </Cartao>
-      </fieldset>
+      {vice && (
+        <p className="alerta">
+          Vice escolhido: <strong>{vice.nome}</strong> ({vice.sigla} · {vice.uf})
+          {partido && partido.sigla !== vice.sigla ? ". A chapa forma uma aliança." : "."}
+        </p>
+      )}
+      <BuscaPessoa
+        pessoas={POLITICOS.filter((p) => semAcento(p.nome) !== semAcento(c.nomeUrna))}
+        selecionado={c.viceId}
+        aoEscolher={(pessoa) => mudar({ viceId: pessoa.id })}
+      />
+      <button
+        type="button"
+        className={proprio ? "botao botao-destaque" : "botao"}
+        onClick={() => mudar({ viceId: VICE_PROPRIO })}
+      >
+        Escrever outro nome
+      </button>
       {c.viceId === VICE_PROPRIO && (
         <div className="bloco">
           <Campo rotulo="Nome completo de quem será vice">

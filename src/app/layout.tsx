@@ -24,7 +24,7 @@ const fonteDado = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "BRASIL: PRESIDENTE",
   description:
-    "Simulador político: dispute a eleição presidencial de 2030 e governe o Brasil por quatro anos.",
+    "Simulador político: dispute a eleição presidencial de 2026 e governe o Brasil por quatro anos.",
 };
 
 export const viewport: Viewport = {

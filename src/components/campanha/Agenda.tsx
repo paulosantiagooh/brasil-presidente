@@ -19,6 +19,8 @@ import {
 import type { Candidato } from "@/lib/candidato";
 import type { Dificuldade } from "@/lib/config";
 import { ESTADOS, REGIOES, type Regiao } from "@/lib/estados";
+import { ALTURA_MAPA, LARGURA_MAPA } from "@/lib/mapa";
+import { CAMINHOS_UF } from "@/lib/mapa-ufs";
 import { Janela } from "../Janela";
 
 type Props = {
@@ -55,6 +57,35 @@ function montarAcao(tipo: TipoComEscolha, valor: string): Acao {
   if (tipo === "proposta") return { tipo, tema: valor };
   if (tipo === "encontro") return { tipo, grupo: valor };
   return { tipo, uf: valor };
+}
+
+// Clique no estado para escolher o destino.
+function MapaEscolha({ valor, aoEscolher }: { valor: string; aoEscolher: (uf: string) => void }) {
+  return (
+    <svg className="mapa-ufs mapa-escolha" viewBox={`0 0 ${LARGURA_MAPA} ${ALTURA_MAPA}`} role="group" aria-label="Escolha o estado no mapa">
+      {ESTADOS.map((estado) => (
+        <path
+          key={estado.uf}
+          d={CAMINHOS_UF[estado.uf]}
+          fill={estado.uf === valor ? "var(--turquesa)" : "var(--superficie-alta)"}
+          className={estado.uf === valor ? "uf selecionada" : "uf"}
+          role="button"
+          tabIndex={0}
+          aria-label={estado.nome}
+          aria-pressed={estado.uf === valor}
+          onClick={() => aoEscolher(estado.uf)}
+          onKeyDown={(evento) => {
+            if (evento.key === "Enter" || evento.key === " ") {
+              evento.preventDefault();
+              aoEscolher(estado.uf);
+            }
+          }}
+        >
+          <title>{estado.nome}</title>
+        </path>
+      ))}
+    </svg>
+  );
 }
 
 export function Agenda({ campanha, candidato, dificuldade, atualizar }: Props) {
@@ -179,6 +210,9 @@ export function Agenda({ campanha, candidato, dificuldade, atualizar }: Props) {
       >
         {escolha && (
           <div className="formulario">
+            {(escolha === "comicio" || escolha === "visita") && (
+              <MapaEscolha valor={valor} aoEscolher={setValor} />
+            )}
             <label className="campo">
               <span className="rotulo">{ROTULO_ESCOLHA[escolha]}</span>
               <select value={valor} onChange={(e) => setValor(e.target.value)}>

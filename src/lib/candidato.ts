@@ -1,3 +1,5 @@
+import { politicoPorId, type TipoPessoa } from "./pessoas";
+
 export const UFS = [
   "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA",
   "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
@@ -115,28 +117,14 @@ export const HISTORICOS: Opcao[] = [
   { id: "varias-vitorias", nome: "Venceu várias eleições", efeito: { reconhecimento: 10, credibilidade: 5, articulacao: 5 } },
 ];
 
-export type ViceSugerido = {
-  id: string;
-  nome: string;
-  uf: string;
-  sigla: string;
-  perfil: string;
-  efeito: Partial<Atributos>;
+// O bônus é uma estimativa do jogo, igual para todos do mesmo tipo de cargo.
+const EFEITO_VICE: Record<TipoPessoa, Partial<Atributos>> = {
+  governo: { reconhecimento: 5, gestao: 5 },
+  senado: { articulacao: 10 },
+  deputado: { articulacao: 5 },
+  politico: { reconhecimento: 5, credibilidade: 5 },
+  tecnico: {},
 };
-
-// Políticos reais, com cargo e partido conferidos em novembro de 2026.
-// O perfil traz só fatos públicos. O bônus é uma estimativa do jogo, somada aos atributos da chapa.
-export const VICES: ViceSugerido[] = [
-  { id: "alckmin", nome: "Geraldo Alckmin", uf: "SP", sigla: "PSB", perfil: "Vice-presidente da República.", efeito: { credibilidade: 5, articulacao: 5 } },
-  { id: "raquel", nome: "Raquel Lyra", uf: "PE", sigla: "PSD", perfil: "Eleita em 2026 para o governo de Pernambuco.", efeito: { reconhecimento: 5, gestao: 5 } },
-  { id: "elmano", nome: "Elmano de Freitas", uf: "CE", sigla: "PT", perfil: "Eleito em 2026 para o governo do Ceará.", efeito: { reconhecimento: 5, gestao: 5 } },
-  { id: "jeronimo", nome: "Jerônimo Rodrigues", uf: "BA", sigla: "PT", perfil: "Eleito em 2026 para o governo da Bahia.", efeito: { reconhecimento: 5, gestao: 5 } },
-  { id: "cleitinho", nome: "Cleitinho Azevedo", uf: "MG", sigla: "Republicanos", perfil: "Eleito em 2026 para o governo de Minas Gerais.", efeito: { reconhecimento: 10 } },
-  { id: "celina", nome: "Celina Leão", uf: "DF", sigla: "PP", perfil: "Eleita em 2026 para o governo do Distrito Federal.", efeito: { articulacao: 5, gestao: 5 } },
-  { id: "vilela", nome: "Daniel Vilela", uf: "GO", sigla: "MDB", perfil: "Eleito em 2026 para o governo de Goiás.", efeito: { articulacao: 10 } },
-  { id: "riedel", nome: "Eduardo Riedel", uf: "MS", sigla: "PP", perfil: "Eleito em 2026 para o governo de Mato Grosso do Sul.", efeito: { gestao: 10 } },
-  { id: "jorginho", nome: "Jorginho Mello", uf: "SC", sigla: "PL", perfil: "Eleito em 2026 para o governo de Santa Catarina.", efeito: { reconhecimento: 5, gestao: 5 } },
-];
 
 export type Candidato = {
   passo: number;
@@ -237,6 +225,19 @@ const EFEITO_PARTIDO: Record<Tamanho, Partial<Atributos>> = {
   novo: { articulacao: -5, credibilidade: 5 },
 };
 
+export function viceDoCandidato(c: Candidato) {
+  return politicoPorId(c.viceId);
+}
+
+export function siglaDoVice(c: Candidato) {
+  return viceDoCandidato(c)?.sigla ?? undefined;
+}
+
+function efeitoDoVice(c: Candidato) {
+  const vice = viceDoCandidato(c);
+  return vice ? EFEITO_VICE[vice.tipo] : undefined;
+}
+
 export function calcularAtributos(c: Candidato): Atributos {
   const total: Atributos = { reconhecimento: 0, credibilidade: 0, gestao: 0, articulacao: 0 };
   const partido = partidoDoCandidato(c);
@@ -245,7 +246,7 @@ export function calcularAtributos(c: Candidato): Atributos {
     CARGOS.find((o) => o.id === c.cargo)?.efeito,
     EXPERIENCIAS.find((o) => o.id === c.experiencia)?.efeito,
     HISTORICOS.find((o) => o.id === c.historico)?.efeito,
-    VICES.find((v) => v.id === c.viceId)?.efeito,
+    efeitoDoVice(c),
     partido ? EFEITO_PARTIDO[partido.tamanho] : undefined,
     { credibilidade: distancia > 45 ? -10 : distancia > 30 ? -5 : 0 },
   ];
@@ -308,7 +309,7 @@ export function dadosDoVice(c: Candidato) {
   if (c.viceId === VICE_PROPRIO) {
     return { nome: c.viceNome.trim(), detalhe: "Vice da sua escolha", foto: c.viceFoto };
   }
-  const vice = VICES.find((v) => v.id === c.viceId);
+  const vice = viceDoCandidato(c);
   if (!vice) return null;
   return { nome: vice.nome, detalhe: `${vice.sigla} · ${vice.uf}`, foto: null };
 }

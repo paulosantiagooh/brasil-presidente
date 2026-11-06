@@ -23,7 +23,7 @@ import { Apuracao } from "./Apuracao";
 import { ResultadoTurno } from "./ResultadoTurno";
 
 const AVISO =
-  "Resultado inventado pelo jogo. Não é previsão nem pesquisa: as pessoas reais citadas não disputaram esta eleição.";
+  "Resultado inventado pelo jogo, em uma história alternativa. Não é o resultado real de 2026.";
 
 const percentual = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2,
@@ -80,7 +80,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
     const participa = jogadorNaDisputa(eleicao);
     return (
       <section className="campanha" aria-labelledby="titulo-resultado">
-        <p className="sobretitulo">1º turno · Eleição 2030 · Simulação</p>
+        <p className="sobretitulo">1º turno · Eleição 2026 · Simulação</p>
         <h1 id="titulo-resultado" className="titulo-tela">
           {participa ? "Você está no segundo turno" : "Você ficou fora do segundo turno"}
         </h1>
@@ -191,7 +191,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
 
   return (
     <section className="campanha" aria-labelledby="titulo-final">
-      <p className="sobretitulo">Resultado final · Eleição 2030 · Simulação</p>
+      <p className="sobretitulo">Resultado final · Eleição 2026 · Simulação</p>
       <h1 id="titulo-final" className="titulo-tela">
         {venceu ? "Você venceu a eleição" : `Vitória de ${vencedor.nome}`}
       </h1>

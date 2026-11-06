@@ -1,20 +1,26 @@
 import type { Campanha } from "./campanha";
 import type { Candidato } from "./candidato";
 import type { Eleicao } from "./eleicao";
-import { AREAS, calcularBalanco, custoDoOrcamento, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
+import type { Pessoa } from "./pessoas";
+import { AREAS, calcularBalanco, custoDoOrcamento, estimarVotos, pastasDoPartido, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
 import {
   ACOES_DIPLOMATICAS,
+  AREAS_MEDIDA,
   ESTATAIS,
   EVENTOS_MANDATO,
   GRUPOS_SOCIAIS,
+  INSTRUMENTOS,
   MODELOS_OBRA,
+  OBJETIVOS_MEDIDA,
   OBRAS_REAIS,
   PARCEIROS,
   PROGRAMAS_SEGURANCA,
   PROJETOS_MANDATO,
+  TONS_PRONUNCIAMENTO,
   VAGAS,
   type Efeito,
   type EventoMandato,
+  type OpcaoIndicacao,
   type Vaga,
 } from "./mandato-dados";
 
@@ -27,7 +33,7 @@ const NOME_MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set",
 // O mês 0 é o registro da posse, antes do primeiro mês de governo.
 export function nomeDoMes(mes: number) {
   if (mes === 0) return "posse";
-  return `${NOME_MES[(mes - 1) % 12]}/${2031 + Math.floor((mes - 1) / 12)}`;
+  return `${NOME_MES[(mes - 1) % 12]}/${2027 + Math.floor((mes - 1) / 12)}`;
 }
 
 // Ponto de partida inspirado em novembro de 2026 (Focus: Selic, IPCA, PIB e dólar). Demais valores são estimativas.
@@ -62,14 +68,36 @@ export type Obra = {
   efeito: Efeito;
 };
 
-export type SituacaoEstatal = { controle: "estatal" | "capital-aberto" | "privatizada"; gestao: "politica" | "tecnica" };
+export type SituacaoEstatal = {
+  controle: "estatal" | "capital-aberto" | "privatizada";
+  gestao: "politica" | "tecnica";
+  presidente: string | null;
+};
 
 export type Registro = {
   mes: number; aprovacao: number; pib: number; ipca: number; selic: number; desemprego: number; divida: number; dolar: number;
 };
 
+export type PropostaEmVoto = {
+  nome: string;
+  tipo: string;
+  economia: number;
+  camara: number | null;
+  senado: number | null;
+  atraso: number;
+  efeito: Efeito;
+  projetoId?: string;
+  medidaId?: number;
+  estatal?: { id: string; controle: "capital-aberto" | "privatizada" };
+};
+
+export type Concessoes = { emendas: number; cargos: number; texto: number };
+
+export type ResultadoVoto = { aprovado: boolean; camara: Casa; senado: Casa | null };
+
 export type Pendencia =
   | { tipo: "evento"; evento: EventoMandato }
+  | { tipo: "votacao"; proposta: PropostaEmVoto; concessoes: Concessoes; resultado: ResultadoVoto | null }
   | { tipo: "indicacao"; vaga: Vaga }
   | { tipo: "resultado-indicacao"; titulo: string; texto: string; sim: number; nao: number };
 
@@ -99,6 +127,11 @@ export type Mandato = {
   historico: Registro[];
   eventosVistos: string[];
   reeleicao: { votos: number; venceu: boolean } | null;
+  inicio: { economia: Economia; sociedade: Sociedade; seguranca: Seguranca; aprovacao: number; congresso: number };
+  vagasReabertas: { id: string; mes: number }[];
+  medidas: { id: number; mes: number; titulo: string; descricao: string; instrumento: string; situacao: string }[];
+  mps: { mes: number; medidaId: number; titulo: string; economia: number; efeito: Efeito }[];
+  resumoMes: { mes: number; aprovacao: number; pib: number; ipca: number; desemprego: number } | null;
 };
 
 export type Contexto = { governo: Governo; candidato: Candidato };
@@ -147,7 +180,7 @@ export function criarMandato(contexto: Contexto, campanha: Campanha, eleicao: El
     grupos: Object.fromEntries(GRUPOS_SOCIAIS.map((g) => [g, 0])),
     obras: [],
     estatais: Object.fromEntries(
-      ESTATAIS.map((e) => [e.id, { controle: e.listada ? "capital-aberto" : "estatal", gestao: "politica" } as SituacaoEstatal]),
+      ESTATAIS.map((e) => [e.id, { controle: e.listada ? "capital-aberto" : "estatal", gestao: "politica", presidente: null } as SituacaoEstatal]),
     ),
     relacoes: Object.fromEntries(PARCEIROS.map((p) => [p, 60])),
     orcamento: { ...contexto.governo.orcamento },
@@ -160,7 +193,19 @@ export function criarMandato(contexto: Contexto, campanha: Campanha, eleicao: El
     historico: [],
     eventosVistos: [],
     reeleicao: null,
+    inicio: {} as Mandato["inicio"],
+    vagasReabertas: [],
+    medidas: [],
+    mps: [],
+    resumoMes: null,
   };
+  m.inicio = structuredClone({
+    economia: m.economia,
+    sociedade: m.sociedade,
+    seguranca: m.seguranca,
+    aprovacao: m.aprovacao,
+    congresso: m.congresso,
+  });
   m.historico.push({ ...registrar(m), mes: 0 });
   noticiar(m, `Posse: o governo começa com ${m.aprovacao}% de aprovação.`);
   void campanha;
@@ -184,12 +229,38 @@ function aplicar(m: Mandato, efeito: Efeito) {
   }
 }
 
+export type Medida = {
+  titulo: string;
+  descricao: string;
+  instrumento: string;
+  area: string;
+  objetivo: string;
+  intensidade: number;
+};
+
+export function calcularMedida(medida: Medida) {
+  const area = AREAS_MEDIDA.find((a) => a.id === medida.area) ?? AREAS_MEDIDA[0];
+  const objetivo = OBJETIVOS_MEDIDA.find((o) => o.id === medida.objetivo) ?? OBJETIVOS_MEDIDA[0];
+  const instrumento = INSTRUMENTOS.find((i) => i.id === medida.instrumento) ?? INSTRUMENTOS[2];
+  const peso = medida.intensidade * instrumento.forca;
+  const efeito: Efeito = {
+    [area.campo]: area.escala * objetivo.ganho * peso,
+    "e.primario": -0.06 * objetivo.custo * peso,
+    aprovacao: objetivo.aprovacao * peso,
+    "e.confianca": objetivo.confianca * medida.intensidade,
+  };
+  return { efeito, area, objetivo, instrumento };
+}
+
 export type Acao =
   | { tipo: "projeto"; id: string }
   | { tipo: "obra"; modelo: string; uf: string }
   | { tipo: "obra-real"; id: string }
   | { tipo: "obra-mudar"; id: string; para: "suspender" | "retomar" | "cancelar" | "ampliar" }
-  | { tipo: "estatal"; id: string; acao: "privatizar" | "abrir-capital" | "gestao-tecnica" | "gestao-politica" }
+  | { tipo: "estatal"; id: string; acao: "privatizar" | "abrir-capital" }
+  | { tipo: "estatal-presidente"; id: string; nome: string; tecnico: boolean }
+  | { tipo: "medida"; medida: Medida }
+  | { tipo: "pronunciamento"; tom: string; texto: string }
   | { tipo: "diplomacia"; parceiro: string; acao: string }
   | { tipo: "seguranca"; id: string }
   | { tipo: "divida"; acao: "alongar" | "amortizar" | "emitir" };
@@ -198,8 +269,8 @@ function bonusDoCongresso(m: Mandato) {
   return (m.congresso - 50) / 250;
 }
 
-function votar(m: Mandato, c: Contexto, proposta: { economia: number; camara: number | null; senado: number | null }) {
-  const resultado = votarProposta({ ...c.governo, semente: m.semente }, c.candidato, proposta, bonusDoCongresso(m));
+function votar(m: Mandato, c: Contexto, proposta: { economia: number; camara: number | null; senado: number | null }, extra = 0) {
+  const resultado = votarProposta({ ...c.governo, semente: m.semente }, c.candidato, proposta, bonusDoCongresso(m) + extra);
   m.semente = resultado.semente;
   return resultado;
 }
@@ -212,6 +283,62 @@ export function podeIniciarObra(m: Mandato) {
   return obrasAtivas(m).length < LIMITE_OBRAS;
 }
 
+function abrirVotacao(m: Mandato, proposta: PropostaEmVoto) {
+  m.pendencia = { tipo: "votacao", proposta, concessoes: { emendas: 0, cargos: 0, texto: 0 }, resultado: null };
+  m.fase = "pendencia";
+}
+
+const LIMITE_CONCESSOES = 2;
+
+function bonusDasConcessoes(c: Concessoes) {
+  return c.emendas * 0.03 + c.cargos * 0.03 + c.texto * 0.04;
+}
+
+export function estimativaDeVotos(m: Mandato, contexto: Contexto) {
+  if (m.pendencia?.tipo !== "votacao") return null;
+  const { proposta, concessoes } = m.pendencia;
+  return estimarVotos(contexto.governo, contexto.candidato, proposta, bonusDoCongresso(m) + bonusDasConcessoes(concessoes));
+}
+
+export function negociar(original: Mandato, tipo: keyof Concessoes): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "votacao" || m.pendencia.resultado) return m;
+  if (m.pendencia.concessoes[tipo] < LIMITE_CONCESSOES) m.pendencia.concessoes[tipo] += 1;
+  return m;
+}
+
+export function colocarEmVotacao(original: Mandato, contexto: Contexto): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "votacao" || m.pendencia.resultado) return m;
+  const { proposta, concessoes } = m.pendencia;
+  const resultado = votar(m, contexto, proposta, bonusDasConcessoes(concessoes));
+  m.pendencia.resultado = { aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado };
+  m.votacoes.unshift({ mes: m.mes, projeto: proposta.nome, aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado });
+  aplicar(m, { "e.primario": -0.04 * concessoes.emendas, "s.confianca": -concessoes.cargos });
+
+  const registro = m.medidas.find((medida) => medida.id === proposta.medidaId);
+  if (registro) registro.situacao = resultado.aprovado ? "Aprovada" : "Rejeitada";
+
+  if (resultado.aprovado) {
+    const fator = Math.pow(0.8, concessoes.texto);
+    const efeito = Object.fromEntries(Object.entries(proposta.efeito).map(([k, v]) => [k, v * fator]));
+    if (proposta.projetoId) m.projetosAprovados.push(proposta.projetoId);
+    if (proposta.estatal) m.estatais[proposta.estatal.id].controle = proposta.estatal.controle;
+    aplicar(m, { congresso: 1 });
+    if (proposta.atraso > 0) {
+      m.pendentes.push({ mes: m.mes + proposta.atraso, efeito, texto: `Os efeitos de "${proposta.nome}" chegaram.` });
+      noticiar(m, `Congresso aprova: ${proposta.nome}. Os efeitos devem aparecer em cerca de ${proposta.atraso} meses.`);
+    } else {
+      aplicar(m, efeito);
+      noticiar(m, `Congresso aprova: ${proposta.nome}.`);
+    }
+  } else {
+    aplicar(m, { congresso: -3, aprovacao: -0.5 });
+    noticiar(m, `Derrota no Congresso: ${proposta.nome}.`);
+  }
+  return m;
+}
+
 export function executar(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
   const m = structuredClone(original);
   if (m.acoes <= 0 || m.fase !== "gestao") return m;
@@ -219,17 +346,57 @@ export function executar(original: Mandato, contexto: Contexto, acao: Acao): Man
   if (acao.tipo === "projeto") {
     const projeto = PROJETOS_MANDATO.find((p) => p.id === acao.id);
     if (!projeto || m.projetosAprovados.includes(projeto.id)) return m;
-    const resultado = votar(m, contexto, projeto);
-    m.votacoes.unshift({ mes: m.mes, projeto: projeto.nome, aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado });
-    if (resultado.aprovado) {
-      m.projetosAprovados.push(projeto.id);
-      m.pendentes.push({ mes: m.mes + projeto.atraso, efeito: projeto.efeito, texto: `Os efeitos de "${projeto.nome}" chegaram.` });
-      aplicar(m, { congresso: 1 });
-      noticiar(m, `Congresso aprova: ${projeto.nome}. Os efeitos devem aparecer em cerca de ${projeto.atraso} meses.`);
+    abrirVotacao(m, {
+      nome: projeto.nome, tipo: projeto.tipo, economia: projeto.economia, camara: projeto.camara,
+      senado: projeto.senado, atraso: projeto.atraso, efeito: projeto.efeito, projetoId: projeto.id,
+    });
+  }
+
+  if (acao.tipo === "medida") {
+    const { efeito, instrumento } = calcularMedida(acao.medida);
+    const { titulo, descricao } = acao.medida;
+    const id = m.medidas.length + 1;
+    const economia = OBJETIVOS_MEDIDA.find((o) => o.id === acao.medida.objetivo)?.economia ?? 50;
+    const registro = { id, mes: m.mes, titulo, descricao, instrumento: instrumento.nome, situacao: "Em andamento" };
+    m.medidas.unshift(registro);
+    if (instrumento.id === "decreto") {
+      // Decreto amplo tem mais chance de parar na Justiça.
+      if (sortear(m) < acao.medida.intensidade * 0.12) {
+        registro.situacao = "Suspensa pelo STF";
+        aplicar(m, { aprovacao: -0.5, "s.confianca": -1 });
+        noticiar(m, `STF suspende o decreto: ${titulo}.`);
+      } else {
+        registro.situacao = "Em vigor";
+        m.pendentes.push({ mes: m.mes + instrumento.atraso, efeito, texto: `O decreto "${titulo}" começa a dar resultado.` });
+        noticiar(m, `Decreto assinado: ${titulo}.`);
+      }
+    } else if (instrumento.id === "mp") {
+      registro.situacao = "Em vigor, aguardando o Congresso";
+      aplicar(m, efeito);
+      m.mps.push({ mes: m.mes + 4, medidaId: id, titulo, economia, efeito });
+      noticiar(m, `Medida provisória publicada: ${titulo}.`);
     } else {
-      aplicar(m, { congresso: -3, aprovacao: -0.5 });
-      noticiar(m, `Derrota no Congresso: ${projeto.nome}.`);
+      abrirVotacao(m, {
+        nome: titulo, tipo: instrumento.nome, economia, camara: instrumento.camara, senado: instrumento.senado,
+        atraso: instrumento.atraso, efeito, medidaId: id,
+      });
     }
+  }
+
+  if (acao.tipo === "pronunciamento") {
+    const tom = TONS_PRONUNCIAMENTO.find((t) => t.id === acao.tom) ?? TONS_PRONUNCIAMENTO[0];
+    aplicar(m, tom.efeito);
+    noticiar(m, acao.texto.trim() ? `Pronunciamento: "${acao.texto.trim()}"` : `Pronunciamento em rede nacional: ${tom.nome.toLowerCase()}.`);
+  }
+
+  if (acao.tipo === "estatal-presidente") {
+    const dados = ESTATAIS.find((e) => e.id === acao.id);
+    const estatal = m.estatais[acao.id];
+    if (!dados || !estatal) return m;
+    estatal.presidente = acao.nome;
+    estatal.gestao = acao.tecnico ? "tecnica" : "politica";
+    aplicar(m, acao.tecnico ? { "e.confianca": 1, congresso: -1 } : { "e.confianca": -1.5, congresso: 2 });
+    noticiar(m, `${acao.nome} assume a presidência: ${dados.nome}.`);
   }
 
   if (acao.tipo === "obra") {
@@ -275,27 +442,15 @@ export function executar(original: Mandato, contexto: Contexto, acao: Acao): Man
     const dados = ESTATAIS.find((e) => e.id === acao.id);
     const estatal = m.estatais[acao.id];
     if (!dados || !estatal) return m;
-    if (acao.acao === "gestao-tecnica" || acao.acao === "gestao-politica") {
-      const tecnica = acao.acao === "gestao-tecnica";
-      estatal.gestao = tecnica ? "tecnica" : "politica";
-      aplicar(m, tecnica ? { "e.confianca": 1, congresso: -1 } : { "e.confianca": -1.5, congresso: 2 });
-      noticiar(m, `${dados.nome}: gestão ${tecnica ? "técnica" : "política"}.`);
-    } else {
-      const privatizar = acao.acao === "privatizar";
-      if (estatal.controle === "privatizada") return m;
-      const resultado = votar(m, contexto, { economia: 82, camara: null, senado: null });
-      const nome = privatizar ? `Privatização: ${dados.nome}` : `Abertura de capital: ${dados.nome}`;
-      m.votacoes.unshift({ mes: m.mes, projeto: nome, aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado });
-      if (resultado.aprovado) {
-        estatal.controle = privatizar ? "privatizada" : "capital-aberto";
-        const parte = privatizar ? dados.valor : dados.valor * 0.3;
-        aplicar(m, { "e.divida": -parte, "e.confianca": 2, aprovacao: privatizar ? -2 : -0.5 });
-        noticiar(m, `${nome} aprovada. A dívida cai ${parte.toFixed(2).replace(".", ",")} ponto do PIB.`);
-      } else {
-        aplicar(m, { congresso: -3 });
-        noticiar(m, `${nome}: derrota no Congresso.`);
-      }
-    }
+    if (estatal.controle === "privatizada") return m;
+    const privatizar = acao.acao === "privatizar";
+    const parte = privatizar ? dados.valor : dados.valor * 0.3;
+    abrirVotacao(m, {
+      nome: privatizar ? `Privatização: ${dados.nome}` : `Abertura de capital: ${dados.nome}`,
+      tipo: "Projeto de lei", economia: 82, camara: null, senado: null, atraso: 0,
+      efeito: { "e.divida": -parte, "e.confianca": 2, aprovacao: privatizar ? -2 : -0.5 },
+      estatal: { id: dados.id, controle: privatizar ? "privatizada" : "capital-aberto" },
+    });
   }
 
   if (acao.tipo === "diplomacia") {
@@ -438,9 +593,25 @@ export function aprovacaoDoGrupo(m: Mandato, grupo: string) {
   return Math.round(limitar(m.aprovacao + (m.grupos[grupo] ?? 0)));
 }
 
-export function encerrarMes(original: Mandato): Mandato {
+export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   const m = structuredClone(original);
   if (m.fase !== "gestao") return m;
+  const anterior = m.historico[m.historico.length - 1];
+
+  for (const mp of m.mps.filter((item) => item.mes <= m.mes)) {
+    const resultado = votar(m, contexto, { economia: mp.economia, camara: null, senado: null });
+    const registro = m.medidas.find((medida) => medida.id === mp.medidaId);
+    if (resultado.aprovado) {
+      if (registro) registro.situacao = "Convertida em lei";
+      noticiar(m, `Congresso converte em lei: ${mp.titulo}.`);
+    } else {
+      if (registro) registro.situacao = "Derrubada pelo Congresso";
+      aplicar(m, Object.fromEntries(Object.entries(mp.efeito).map(([k, v]) => [k, -v])));
+      aplicar(m, { congresso: -2 });
+      noticiar(m, `Congresso derruba a medida provisória: ${mp.titulo}.`);
+    }
+  }
+  m.mps = m.mps.filter((item) => item.mes > m.mes);
 
   for (const item of m.pendentes.filter((p) => p.mes <= m.mes)) {
     aplicar(m, item.efeito);
@@ -452,6 +623,13 @@ export function encerrarMes(original: Mandato): Mandato {
   simularMes(m);
   m.aprovacao = Math.round(m.aprovacao * 10) / 10;
   m.historico.push(registrar(m));
+  m.resumoMes = {
+    mes: m.mes,
+    aprovacao: m.aprovacao - anterior.aprovacao,
+    pib: m.economia.pib - anterior.pib,
+    ipca: m.economia.ipca - anterior.ipca,
+    desemprego: m.economia.desemprego - anterior.desemprego,
+  };
 
   if (m.mes >= MESES) {
     const votos = limitar(31 + m.aprovacao * 0.42 + ruido(m, 3), 20, 75);
@@ -463,7 +641,9 @@ export function encerrarMes(original: Mandato): Mandato {
   m.mes += 1;
   m.acoes = ACOES_POR_MES;
 
-  const vaga = VAGAS.find((v) => v.mes === m.mes);
+  const reaberta = m.vagasReabertas.find((v) => v.mes === m.mes);
+  const vaga = reaberta ? VAGAS.find((v) => v.id === reaberta.id) : VAGAS.find((v) => v.mes === m.mes);
+  m.vagasReabertas = m.vagasReabertas.filter((v) => v.mes > m.mes);
   if (vaga) {
     m.pendencia = { tipo: "indicacao", vaga };
     m.fase = "pendencia";
@@ -490,11 +670,25 @@ export function responderEvento(original: Mandato, opcao: number): Mandato {
   return m;
 }
 
-export function indicar(original: Mandato, contexto: Contexto, opcao: number): Mandato {
+// Político indicado agrada a base, mas pesa na confiança nas instituições.
+export function indicacaoPolitica(pessoa: Pessoa, contexto: Contexto): OpcaoIndicacao {
+  const naBase = pessoa.sigla ? pastasDoPartido(contexto.governo, pessoa.sigla).length > 0 : false;
+  return {
+    nome: pessoa.nome,
+    perfil: pessoa.cargo,
+    bonus: naBase ? 0.04 : 0,
+    efeito: { "s.confianca": -2, congresso: 1 },
+  };
+}
+
+export function indicacaoLivre(nome: string): OpcaoIndicacao {
+  return { nome, perfil: "Nome escolhido pelo presidente.", bonus: 0, efeito: {} };
+}
+
+export function indicar(original: Mandato, contexto: Contexto, escolhido: OpcaoIndicacao): Mandato {
   const m = structuredClone(original);
   if (m.pendencia?.tipo !== "indicacao") return m;
   const { vaga } = m.pendencia;
-  const escolhido = vaga.opcoes[opcao];
   const resultado = votarIndicacao(
     { ...contexto.governo, semente: m.semente },
     contexto.candidato,
@@ -509,6 +703,7 @@ export function indicar(original: Mandato, contexto: Contexto, opcao: number): M
   } else {
     aplicar(m, { congresso: -5, aprovacao: -1 });
     noticiar(m, `Senado rejeita ${escolhido.nome}: ${vaga.cargo}.`);
+    if (m.mes < MESES) m.vagasReabertas.push({ id: vaga.id, mes: m.mes + 1 });
   }
   m.pendencia = {
     tipo: "resultado-indicacao",

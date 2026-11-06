@@ -6,6 +6,7 @@ import { UFS } from "@/lib/candidato";
 import { AREAS, NOME_NIVEL, TETO_ORCAMENTO } from "@/lib/governo";
 import {
   aprovacaoDoGrupo,
+  calcularMedida,
   custoAnualDasObras,
   custoDoOrcamentoDoMandato,
   executar,
@@ -22,19 +23,28 @@ import {
 } from "@/lib/mandato";
 import {
   ACOES_DIPLOMATICAS,
+  AREAS_MEDIDA,
+  CADEIRA_VAGA_STF,
   ESTATAIS,
   GRUPOS_SOCIAIS,
   INSTITUICOES,
+  INSTRUMENTOS,
   MODELOS_OBRA,
+  NOME_INTENSIDADE,
+  OBJETIVOS_MEDIDA,
   OBRAS_REAIS,
   PARCEIROS,
   PROGRAMAS_SEGURANCA,
   PROJETOS_MANDATO,
   STF,
+  TECNICOS_ESTATAIS,
+  TONS_PRONUNCIAMENTO,
   VAGAS,
-  VAGAS_STF_ANTES_DE_2031,
   type AreaDoProjeto,
 } from "@/lib/mandato-dados";
+import { POLITICOS } from "@/lib/pessoas";
+import { BuscaPessoa } from "../BuscaPessoa";
+import { Janela } from "../Janela";
 import { Barras, Bloco, numero, Numeros, Serie } from "./Comum";
 
 type Props = {
@@ -364,11 +374,21 @@ const NOME_CONTROLE = { estatal: "100% pública", "capital-aberto": "Capital abe
 export function PainelEstatais(props: Props) {
   const { mandato } = props;
   const { semAcoes, fazer } = useAcao(props);
+  const [aberta, setAberta] = useState<string | null>(null);
+  const [nomeLivre, setNomeLivre] = useState("");
+  const estatalAberta = ESTATAIS.find((e) => e.id === aberta);
+
+  function nomear(nome: string, tecnico: boolean) {
+    if (aberta) fazer({ tipo: "estatal-presidente", id: aberta, nome, tecnico });
+    setAberta(null);
+    setNomeLivre("");
+  }
+
   return (
     <div className="formulario">
       <p className="ajuda">
-        Privatizar e abrir capital passam pelo Congresso e seguem as regras legais e de governança. Fundir e
-        criar empresas ainda não estão disponíveis.
+        Presidente técnico agrada o mercado. Presidente político agrada o Congresso. Privatizar e abrir
+        capital passam por votação. Fundir e criar empresas ainda não estão disponíveis.
       </p>
       <ul className="lista-estatais">
         {ESTATAIS.map((estatal) => {
@@ -380,22 +400,15 @@ export function PainelEstatais(props: Props) {
                 <strong>{estatal.nome}</strong>
                 <span className="dado">{NOME_CONTROLE[situacao.controle]}</span>
               </p>
-              <p className="ajuda">Gestão {situacao.gestao === "tecnica" ? "técnica" : "política"}</p>
+              <p className="ajuda">
+                {situacao.presidente
+                  ? `Presidência: ${situacao.presidente} (gestão ${situacao.gestao === "tecnica" ? "técnica" : "política"})`
+                  : "Presidência herdada do governo anterior."}
+              </p>
               {!vendida && (
                 <div className="acoes">
-                  <button
-                    type="button"
-                    className="botao"
-                    disabled={semAcoes}
-                    onClick={() =>
-                      fazer({
-                        tipo: "estatal",
-                        id: estatal.id,
-                        acao: situacao.gestao === "tecnica" ? "gestao-politica" : "gestao-tecnica",
-                      })
-                    }
-                  >
-                    {situacao.gestao === "tecnica" ? "Gestão política" : "Gestão técnica"}
+                  <button type="button" className="botao" disabled={semAcoes} onClick={() => setAberta(estatal.id)}>
+                    Escolher presidente
                   </button>
                   {situacao.controle === "estatal" && (
                     <button type="button" className="botao" disabled={semAcoes} onClick={() => fazer({ tipo: "estatal", id: estatal.id, acao: "abrir-capital" })}>
@@ -411,6 +424,189 @@ export function PainelEstatais(props: Props) {
           );
         })}
       </ul>
+      <Janela
+        aberta={aberta !== null}
+        titulo={estatalAberta ? `Presidência: ${estatalAberta.nome}` : ""}
+        aoFechar={() => setAberta(null)}
+      >
+        {estatalAberta && (
+          <div className="formulario">
+            <button type="button" className="acao" onClick={() => nomear(TECNICOS_ESTATAIS[estatalAberta.id], true)}>
+              <strong>{TECNICOS_ESTATAIS[estatalAberta.id]}</strong>
+              <span className="ajuda">Executivo técnico (personagem fictício).</span>
+            </button>
+            <div className="bloco">
+              <label className="campo">
+                <span className="rotulo">Escrever outro nome</span>
+                <input value={nomeLivre} maxLength={60} autoComplete="off" onChange={(e) => setNomeLivre(e.target.value)} />
+              </label>
+              <button type="button" className="botao" disabled={nomeLivre.trim().length < 3} onClick={() => nomear(nomeLivre.trim(), true)}>
+                Nomear
+              </button>
+            </div>
+            <p className="rotulo">Ou escolha um político</p>
+            <BuscaPessoa pessoas={POLITICOS} aoEscolher={(pessoa) => nomear(pessoa.nome, false)} />
+          </div>
+        )}
+      </Janela>
+    </div>
+  );
+}
+
+const MEDIDA_VAZIA = {
+  titulo: "",
+  descricao: "",
+  instrumento: "lei",
+  area: AREAS_MEDIDA[0].id,
+  objetivo: OBJETIVOS_MEDIDA[0].id,
+  intensidade: 2,
+};
+
+function descreverPrevisao(medida: typeof MEDIDA_VAZIA) {
+  const { efeito, area, objetivo } = calcularMedida(medida);
+  const partes = [objetivo.ganho > 0 ? `Melhora ${area.nome.toLowerCase()}` : `Reduz a presença do governo em ${area.nome.toLowerCase()}`];
+  if (efeito["e.primario"] < 0) partes.push("custa dinheiro");
+  if (efeito["e.primario"] > 0) partes.push("economiza dinheiro");
+  if (efeito.aprovacao > 0) partes.push("tende a agradar a população");
+  if (efeito.aprovacao < 0) partes.push("tende a desagradar a população");
+  if (efeito["e.confianca"] > 0) partes.push("agrada o mercado");
+  if (efeito["e.confianca"] < 0) partes.push("preocupa o mercado");
+  return `${partes.join(", ")}.`;
+}
+
+export function PainelMedidas(props: Props) {
+  const { mandato } = props;
+  const { semAcoes, fazer } = useAcao(props);
+  const [medida, setMedida] = useState(MEDIDA_VAZIA);
+  const [tom, setTom] = useState(TONS_PRONUNCIAMENTO[0].id);
+  const [fala, setFala] = useState("");
+  const { instrumento } = calcularMedida(medida);
+  const mudar = (mudanca: Partial<typeof MEDIDA_VAZIA>) => setMedida((atual) => ({ ...atual, ...mudanca }));
+  const pronta = medida.titulo.trim().length >= 5;
+
+  return (
+    <div className="areas">
+      <Bloco titulo="Escrever uma medida">
+        <div className="bloco">
+          <label className="campo">
+            <span className="rotulo">Nome da medida</span>
+            <input
+              value={medida.titulo}
+              maxLength={90}
+              autoComplete="off"
+              placeholder="Ex.: Programa Primeiro Emprego"
+              onChange={(e) => mudar({ titulo: e.target.value })}
+            />
+          </label>
+          <label className="campo">
+            <span className="rotulo">O que ela faz (opcional)</span>
+            <textarea rows={3} maxLength={400} value={medida.descricao} onChange={(e) => mudar({ descricao: e.target.value })} />
+          </label>
+          <label className="campo">
+            <span className="rotulo">Instrumento</span>
+            <select value={medida.instrumento} onChange={(e) => mudar({ instrumento: e.target.value })}>
+              {INSTRUMENTOS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome}
+                </option>
+              ))}
+            </select>
+            <span className="ajuda">{instrumento.resumo}</span>
+          </label>
+          <label className="campo">
+            <span className="rotulo">Área</span>
+            <select value={medida.area} onChange={(e) => mudar({ area: e.target.value })}>
+              {AREAS_MEDIDA.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="campo">
+            <span className="rotulo">Objetivo</span>
+            <select value={medida.objetivo} onChange={(e) => mudar({ objetivo: e.target.value })}>
+              {OBJETIVOS_MEDIDA.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="campo">
+            <span className="barra-nome">
+              <span className="rotulo">Tamanho</span>
+              <strong>{NOME_INTENSIDADE[medida.intensidade]}</strong>
+            </span>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              value={medida.intensidade}
+              aria-valuetext={NOME_INTENSIDADE[medida.intensidade]}
+              onChange={(e) => mudar({ intensidade: Number(e.target.value) })}
+            />
+          </label>
+          <p className="alerta">{descreverPrevisao(medida)}</p>
+          <button
+            type="button"
+            className="botao botao-destaque"
+            disabled={semAcoes || !pronta}
+            onClick={() => {
+              fazer({ tipo: "medida", medida: { ...medida, titulo: medida.titulo.trim() } });
+              setMedida(MEDIDA_VAZIA);
+            }}
+          >
+            {instrumento.camara !== null || instrumento.id === "lei" ? "Enviar ao Congresso" : "Assinar"}
+          </button>
+          <p className="ajuda">
+            O jogo calcula o efeito pela área, pelo objetivo e pelo tamanho. O texto que você escreve aparece
+            nas notícias, mas não é interpretado.
+          </p>
+        </div>
+      </Bloco>
+      <Bloco titulo="Pronunciamento em rede nacional">
+        <div className="bloco">
+          <label className="campo">
+            <span className="rotulo">Tom</span>
+            <select value={tom} onChange={(e) => setTom(e.target.value)}>
+              {TONS_PRONUNCIAMENTO.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="campo">
+            <span className="rotulo">O que dizer (opcional)</span>
+            <textarea rows={2} maxLength={200} value={fala} onChange={(e) => setFala(e.target.value)} />
+          </label>
+          <button
+            type="button"
+            className="botao"
+            disabled={semAcoes}
+            onClick={() => {
+              fazer({ tipo: "pronunciamento", tom, texto: fala });
+              setFala("");
+            }}
+          >
+            Falar à nação
+          </button>
+        </div>
+        <h3 className="rotulo">Suas medidas</h3>
+        {mandato.medidas.length === 0 ? (
+          <p className="ajuda">Nenhuma medida escrita ainda.</p>
+        ) : (
+          <ul className="diario">
+            {mandato.medidas.slice(0, 12).map((item) => (
+              <li key={item.id}>
+                <span className="dado">{nomeDoMes(item.mes)}</span> <strong>{item.titulo}</strong>: {item.instrumento}.{" "}
+                {item.situacao}.{item.descricao && <span className="ajuda"> {item.descricao}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Bloco>
     </div>
   );
 }
@@ -467,6 +663,10 @@ export function PainelCongresso(props: Props) {
 }
 
 export function PainelInstituicoes({ mandato }: { mandato: Mandato }) {
+  const saiu = (nome: string) => {
+    const vaga = VAGAS.find((v) => v.sai === nome);
+    return vaga ? mandato.indicados.some((i) => i.vaga === vaga.id && i.aprovado) : false;
+  };
   return (
     <div className="areas">
       <Bloco titulo="Calendário de vagas">
@@ -503,7 +703,18 @@ export function PainelInstituicoes({ mandato }: { mandato: Mandato }) {
               </tr>
             </thead>
             <tbody>
-              {STF.map((ministro) => (
+              {mandato.indicados
+                .filter((i) => i.aprovado && i.vaga.startsWith("stf-"))
+                .map((i) => (
+                  <tr key={i.vaga}>
+                    <th scope="row">{i.nome}</th>
+                    <td>Nova</td>
+                    <td>{nomeDoMes(i.mes)}</td>
+                    <td>Você</td>
+                    <td>Nova</td>
+                  </tr>
+                ))}
+              {STF.filter((ministro) => !saiu(ministro.nome)).map((ministro) => (
                 <tr key={ministro.nome}>
                   <th scope="row">{ministro.nome}</th>
                   <td>{ministro.nascimento}</td>
@@ -515,7 +726,7 @@ export function PainelInstituicoes({ mandato }: { mandato: Mandato }) {
             </tbody>
           </table>
         </div>
-        <p className="ajuda">{VAGAS_STF_ANTES_DE_2031}</p>
+        <p className="ajuda">{CADEIRA_VAGA_STF}</p>
       </Bloco>
     </div>
   );
@@ -598,7 +809,7 @@ export function PainelRelatorios({ mandato }: { mandato: Mandato }) {
       </Bloco>
       <Bloco titulo="Fechamentos trimestrais">
         {trimestres.length === 0 ? (
-          <p className="ajuda">O primeiro fechamento sai em março de 2031.</p>
+          <p className="ajuda">O primeiro fechamento sai em março de 2027.</p>
         ) : (
           <div className="tabela-rolagem">
             <table className="tabela-partidos">

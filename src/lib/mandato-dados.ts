@@ -134,11 +134,11 @@ export type EventoMandato = {
   tema: string;
   titulo: string;
   texto: string;
-  opcoes: [{ texto: string; efeito: Efeito }, { texto: string; efeito: Efeito }];
+  opcoes: { texto: string; efeito: Efeito }[];
 };
 
 // Eventos genéricos: nenhuma pessoa real é citada.
-export const EVENTOS_MANDATO: EventoMandato[] = [
+const EVENTOS_BASE: EventoMandato[] = [
   { id: "crise-global", tema: "Crise econômica", titulo: "Crise financeira global", texto: "Bolsas despencam no exterior, e o dólar dispara.", opcoes: [
     { texto: "Manter as contas e confiar no Banco Central.", efeito: { "e.confianca": 3, "e.pib": -0.5, aprovacao: -2 } },
     { texto: "Lançar um pacote de estímulo.", efeito: { "e.pib": 0.3, "e.primario": -0.4, "e.confianca": -4 } },
@@ -193,33 +193,68 @@ export const EVENTOS_MANDATO: EventoMandato[] = [
   ] },
 ];
 
+const OPCOES_EXTRAS: Record<string, { texto: string; efeito: Efeito }> = {
+  "crise-global": { texto: "Reunir o G20 e negociar uma resposta conjunta.", efeito: { "r.G20": 5, "e.confianca": 1, aprovacao: -1 } },
+  "inflacao-alimentos": { texto: "Reforçar estoques públicos e o crédito ao produtor.", efeito: { "e.ipca": -0.2, "e.primario": -0.05 } },
+  recessao: { texto: "Convocar empresários e sindicatos para um pacto.", efeito: { "e.confianca": 2, aprovacao: 1 } },
+  "greve-transporte": { texto: "Criar uma mesa permanente sobre o frete.", efeito: { aprovacao: 1, congresso: -1 } },
+  "greve-servidores": { texto: "Oferecer reajuste parcelado.", efeito: { "e.primario": -0.07, aprovacao: 0.5 } },
+  enchentes: { texto: "Decretar calamidade e ir pessoalmente ao local.", efeito: { aprovacao: 4, "e.primario": -0.2 } },
+  seca: { texto: "Antecipar obras de adutoras e barragens.", efeito: { "s.qualidade": 1, "e.primario": -0.15 } },
+  energia: { texto: "Lançar uma campanha de economia de energia.", efeito: { aprovacao: -1, "s.ambiente": 1 } },
+  contrato: { texto: "Chamar os órgãos de controle e abrir os dados ao público.", efeito: { "s.confianca": 3, congresso: -3, aprovacao: 1 } },
+  vetos: { texto: "Propor um acordo sobre parte dos vetos.", efeito: { congresso: 2 } },
+  tarifas: { texto: "Levar o caso à OMC.", efeito: { "r.OMC": 4, "e.exportacoes": -2 } },
+  conflito: { texto: "Usar um fundo temporário para amortecer o preço.", efeito: { "e.primario": -0.15, aprovacao: 1 } },
+  protestos: { texto: "Fazer um pronunciamento em rede nacional.", efeito: { aprovacao: 1 } },
+};
+
+export const EVENTOS_MANDATO: EventoMandato[] = EVENTOS_BASE.map((evento) => ({
+  ...evento,
+  opcoes: [...evento.opcoes, OPCOES_EXTRAS[evento.id]],
+}));
+
+export type OpcaoIndicacao = { nome: string; perfil: string; bonus: number; efeito: Efeito };
+
 export type Vaga = {
   id: string;
   mes: number;
   orgao: string;
   cargo: string;
   regra: string;
-  opcoes: { nome: string; perfil: string; bonus: number; efeito: Efeito }[];
+  sai?: string;
+  politicos: boolean;
+  opcoes: OpcaoIndicacao[];
 };
 
-// Calendário real de vagas no mandato. Janeiro de 2031 é o mês 1. Os indicados são fictícios.
+const REGRA_STF =
+  "A Constituição pede notável saber jurídico, reputação ilibada e idade entre 35 e 70 anos. O Senado aprova com 41 votos e pode rejeitar, como fez em abril de 2026.";
+const REGRA_PGR =
+  "Mandato de 2 anos, para integrante da carreira do Ministério Público. O Senado aprova com 41 votos.";
+
+const JURISTA: OpcaoIndicacao = { nome: "Dra. Lúcia Falcão Bastos", perfil: "Jurista respeitada no meio acadêmico.", bonus: 0.08, efeito: { "s.confianca": 3 } };
+const ADVOGADO: OpcaoIndicacao = { nome: "Dr. Ricardo Meireles Couto", perfil: "Advogado próximo do governo.", bonus: -0.04, efeito: { "s.confianca": -3, congresso: 1 } };
+const JUIZA: OpcaoIndicacao = { nome: "Dra. Marta Queiroz Lemos", perfil: "Juíza de carreira com perfil técnico.", bonus: 0.07, efeito: { "s.confianca": 2 } };
+const PROFESSOR: OpcaoIndicacao = { nome: "Prof. Caetano Vidal Rocha", perfil: "Constitucionalista de perfil conservador.", bonus: 0.05, efeito: { "s.confianca": 1 } };
+
+// Calendário real de vagas. Janeiro de 2027 é o mês 1. Os nomes das opções são fictícios.
 export const VAGAS: Vaga[] = [
-  { id: "pgr-2031", mes: 12, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: "Mandato de 2 anos. O presidente indica, e o Senado aprova com 41 votos.", opcoes: [
+  { id: "stf-barroso", mes: 2, orgao: "STF", cargo: "Vaga de Luís Roberto Barroso no STF", regra: `Cadeira aberta desde outubro de 2025. ${REGRA_STF}`, politicos: true, opcoes: [JURISTA, ADVOGADO] },
+  { id: "pgr-2027", mes: 12, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: REGRA_PGR, politicos: false, opcoes: [
     { nome: "Dra. Cecília Rangel Motta", perfil: "Procuradora de carreira, sem ligação com o governo.", bonus: 0.08, efeito: { "s.confianca": 3, congresso: -1 } },
     { nome: "Dr. Augusto Paiva Leal", perfil: "Procurador próximo do governo.", bonus: 0, efeito: { "s.confianca": -3, congresso: 1 } },
   ] },
-  { id: "bc-2033", mes: 24, orgao: "Banco Central", cargo: "Presidência do Banco Central", regra: "Mandato de 4 anos a partir de janeiro de 2033. O Senado aprova, e o banco mantém autonomia.", opcoes: [
+  { id: "stf-fux", mes: 16, orgao: "STF", cargo: "Vaga de Luiz Fux no STF", sai: "Luiz Fux", regra: `Aposentadoria compulsória aos 75 anos, em abril de 2028. ${REGRA_STF}`, politicos: true, opcoes: [JUIZA, PROFESSOR, ADVOGADO] },
+  { id: "bc-2029", mes: 24, orgao: "Banco Central", cargo: "Presidência do Banco Central", regra: "O mandato atual termina em dezembro de 2028. O novo é de 4 anos, com aprovação do Senado e autonomia do banco.", politicos: true, opcoes: [
     { nome: "Beatriz Holanda Viana", perfil: "Economista respeitada pelo mercado.", bonus: 0.08, efeito: { "e.confianca": 6 } },
     { nome: "Rubens Sá Teixeira", perfil: "Economista que defende juros mais baixos.", bonus: 0, efeito: { "e.confianca": -6, "e.ipca": 0.3, aprovacao: 1 } },
   ] },
-  { id: "stf-2033", mes: 26, orgao: "STF", cargo: "Vaga de Edson Fachin no STF", regra: "Aposentadoria compulsória aos 75 anos, em fevereiro de 2033. O Senado aprova com 41 votos, e pode rejeitar, como fez em abril de 2026.", opcoes: [
-    { nome: "Dra. Lúcia Falcão Bastos", perfil: "Jurista respeitada no meio acadêmico.", bonus: 0.08, efeito: { "s.confianca": 3 } },
-    { nome: "Dr. Ricardo Meireles Couto", perfil: "Advogado próximo do governo.", bonus: -0.04, efeito: { "s.confianca": -3, congresso: 1 } },
-  ] },
-  { id: "pgr-2033", mes: 36, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: "Mandato de 2 anos. O presidente indica, e o Senado aprova com 41 votos.", opcoes: [
+  { id: "stf-carmen", mes: 28, orgao: "STF", cargo: "Vaga de Cármen Lúcia no STF", sai: "Cármen Lúcia", regra: `Aposentadoria compulsória aos 75 anos, em abril de 2029. ${REGRA_STF}`, politicos: true, opcoes: [JURISTA, JUIZA, ADVOGADO] },
+  { id: "pgr-2029", mes: 36, orgao: "Ministério Público", cargo: "Procuradoria-Geral da República", regra: REGRA_PGR, politicos: false, opcoes: [
     { nome: "Dra. Sílvia Tavora Mendes", perfil: "Procuradora com longa carreira no combate à corrupção.", bonus: 0.06, efeito: { "s.confianca": 2 } },
     { nome: "Dr. Nelson Ayres Fontes", perfil: "Procurador de perfil conciliador.", bonus: 0.04, efeito: { congresso: 1 } },
   ] },
+  { id: "stf-gilmar", mes: 48, orgao: "STF", cargo: "Vaga de Gilmar Mendes no STF", sai: "Gilmar Mendes", regra: `Aposentadoria compulsória aos 75 anos, em dezembro de 2030. ${REGRA_STF}`, politicos: true, opcoes: [PROFESSOR, JUIZA, ADVOGADO] },
 ];
 
 export type Ministro = {
@@ -232,17 +267,69 @@ export type Ministro = {
 
 // Composição real do STF conferida em novembro de 2026, com a aposentadoria aos 75 anos.
 export const STF: Ministro[] = [
+  { nome: "Edson Fachin", nascimento: "08/02/1958", posse: "2015", indicacao: "Dilma Rousseff", aposentadoria: "2033" },
+  { nome: "Gilmar Mendes", nascimento: "30/12/1955", posse: "2002", indicacao: "Fernando Henrique Cardoso", aposentadoria: "2030" },
+  { nome: "Cármen Lúcia", nascimento: "19/04/1954", posse: "2006", indicacao: "Lula", aposentadoria: "2029" },
   { nome: "Dias Toffoli", nascimento: "15/11/1967", posse: "2009", indicacao: "Lula", aposentadoria: "2042" },
+  { nome: "Luiz Fux", nascimento: "26/04/1953", posse: "2011", indicacao: "Dilma Rousseff", aposentadoria: "2028" },
   { nome: "Alexandre de Moraes", nascimento: "13/12/1968", posse: "2017", indicacao: "Michel Temer", aposentadoria: "2043" },
-  { nome: "Flávio Dino", nascimento: "30/04/1968", posse: "2024", indicacao: "Lula", aposentadoria: "2043" },
   { nome: "Nunes Marques", nascimento: "16/05/1972", posse: "2020", indicacao: "Jair Bolsonaro", aposentadoria: "2047" },
   { nome: "André Mendonça", nascimento: "27/12/1972", posse: "2021", indicacao: "Jair Bolsonaro", aposentadoria: "2047" },
   { nome: "Cristiano Zanin", nascimento: "15/11/1975", posse: "2023", indicacao: "Lula", aposentadoria: "2050" },
-  { nome: "Edson Fachin", nascimento: "08/02/1958", posse: "2015", indicacao: "Dilma Rousseff", aposentadoria: "2033" },
+  { nome: "Flávio Dino", nascimento: "30/04/1968", posse: "2024", indicacao: "Lula", aposentadoria: "2043" },
 ];
 
-export const VAGAS_STF_ANTES_DE_2031 =
-  "Quatro cadeiras mudam antes do início do mandato: a de Luís Roberto Barroso (aberta em 2025) e as de Luiz Fux (2028), Cármen Lúcia (2029) e Gilmar Mendes (2030). O jogo não presume quem vai ocupá-las.";
+export const CADEIRA_VAGA_STF =
+  "A 11ª cadeira, de Luís Roberto Barroso, está vaga desde outubro de 2025. Em abril de 2026, o Senado rejeitou a indicação feita para ela.";
+
+export const TECNICOS_ESTATAIS: Record<string, string> = {
+  petrobras: "Eng. Marcela Duarte Guedes",
+  bb: "Otávio Pimentel Aragão",
+  caixa: "Vânia Sousa Prestes",
+  correios: "Hélio Bastos Carneiro",
+  bndes: "Dra. Regina Coutinho Lima",
+  serpro: "Eng. Ivan Pacheco Reis",
+  dataprev: "Sandra Ribeiro Fontes",
+};
+
+export const AREAS_MEDIDA: { id: string; nome: string; campo: string; escala: number }[] = [
+  { id: "saude", nome: "Saúde", campo: "s.saude", escala: 2.5 },
+  { id: "educacao", nome: "Educação", campo: "s.educacao", escala: 2.5 },
+  { id: "seguranca", nome: "Segurança pública", campo: "p.eficiencia", escala: 3 },
+  { id: "social", nome: "Combate à pobreza", campo: "e.pobreza", escala: -0.7 },
+  { id: "emprego", nome: "Emprego e renda", campo: "e.desemprego", escala: -0.25 },
+  { id: "industria", nome: "Indústria e investimentos", campo: "e.investimento", escala: 0.3 },
+  { id: "impostos", nome: "Impostos e tributos", campo: "e.carga", escala: -0.3 },
+  { id: "agro", nome: "Agricultura e exportações", campo: "e.exportacoes", escala: 4 },
+  { id: "ambiente", nome: "Meio ambiente", campo: "s.ambiente", escala: 2.5 },
+  { id: "infraestrutura", nome: "Infraestrutura", campo: "e.investimento", escala: 0.25 },
+  { id: "ciencia", nome: "Ciência e tecnologia", campo: "e.investimento", escala: 0.2 },
+  { id: "cultura", nome: "Cultura e qualidade de vida", campo: "s.qualidade", escala: 2 },
+];
+
+export const OBJETIVOS_MEDIDA = [
+  { id: "ampliar", nome: "Ampliar o que já existe", ganho: 1, custo: 1, economia: 32, aprovacao: 0.6, confianca: 0 },
+  { id: "programa", nome: "Criar um programa novo", ganho: 1.5, custo: 1.6, economia: 28, aprovacao: 1, confianca: -0.5 },
+  { id: "reformar", nome: "Reformar as regras", ganho: 0.6, custo: 0, economia: 55, aprovacao: 0.2, confianca: 1 },
+  { id: "reduzir", nome: "Reduzir gastos na área", ganho: -0.6, custo: -1, economia: 78, aprovacao: -0.8, confianca: 1.5 },
+];
+
+export const INSTRUMENTOS = [
+  { id: "decreto", nome: "Decreto presidencial", forca: 0.5, atraso: 2, camara: null, senado: null, resumo: "Vale sem o Congresso, mas tem alcance menor e pode ser suspenso pelo STF." },
+  { id: "mp", nome: "Medida provisória", forca: 0.8, atraso: 1, camara: null, senado: null, resumo: "Vale na hora, e o Congresso vota em 4 meses. Se rejeitar, o efeito se desfaz." },
+  { id: "lei", nome: "Projeto de lei", forca: 1, atraso: 6, camara: null, senado: null, resumo: "Precisa da maioria dos presentes." },
+  { id: "complementar", nome: "Lei complementar", forca: 1.2, atraso: 8, camara: 257, senado: 41, resumo: "Precisa de 257 deputados e 41 senadores." },
+  { id: "emenda", nome: "Emenda à Constituição", forca: 1.6, atraso: 12, camara: 308, senado: 49, resumo: "Precisa de 308 deputados e 49 senadores." },
+];
+
+export const NOME_INTENSIDADE = ["", "Pequeno", "Médio", "Grande"];
+
+export const TONS_PRONUNCIAMENTO: { id: string; nome: string; efeito: Efeito }[] = [
+  { id: "tranquilizar", nome: "Tranquilizar o país", efeito: { aprovacao: 0.5, "e.confianca": 1 } },
+  { id: "mobilizar", nome: "Mobilizar a população", efeito: { aprovacao: 1.5, congresso: -1 } },
+  { id: "contas", nome: "Prestar contas", efeito: { "s.confianca": 1.5 } },
+  { id: "oposicao", nome: "Criticar a oposição", efeito: { aprovacao: 0.5, congresso: -3 } },
+];
 
 export const INSTITUICOES = [
   { nome: "STF", papel: "Guarda da Constituição. Elege o próprio presidente: o presidente da República não escolhe." },

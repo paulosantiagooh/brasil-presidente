@@ -1,6 +1,6 @@
-import { calcularAtributos, distanciaDoPartido, partidoDoCandidato, VICES, type Candidato } from "./candidato";
+import { calcularAtributos, distanciaDoPartido, partidoDoCandidato, siglaDoVice, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
-import { ESTADOS, estadoDe, PERFIL_REGIAO, type Regiao } from "./estados";
+import { aoEstado, ESTADOS, estadoDe, noEstado, PERFIL_REGIAO, type Regiao } from "./estados";
 import { PERGUNTAS, type Efeito, type Pergunta } from "./perguntas";
 
 export const SEMANAS = 5;
@@ -30,28 +30,25 @@ export type Rival = {
 
 // Políticos reais em um cenário hipotético, com partido conferido em novembro de 2026.
 // Posição e força são estimativas do jogo. Nunca invente crime, escândalo ou fala para eles.
-// Lula (dois mandatos seguidos) e Jair Bolsonaro (inelegível) ficam fora da disputa de 2030.
+// Jair Bolsonaro está inelegível na vida real e só aparece aqui como cenário alternativo.
 const RIVAIS_POR_BLOCO: Rival[][] = [
   [
-    { nome: "Fernando Haddad", sigla: "PT", numero: 13, uf: "SP", economia: 30, costumes: 28, forca: 20 },
-    { nome: "Camilo Santana", sigla: "PT", numero: 13, uf: "CE", economia: 32, costumes: 38, forca: 16 },
-    { nome: "Rafael Fonteles", sigla: "PT", numero: 13, uf: "PI", economia: 33, costumes: 38, forca: 13 },
+    { nome: "Lula", sigla: "PT", numero: 13, uf: "SP", economia: 28, costumes: 32, forca: 26 },
     { nome: "Guilherme Boulos", sigla: "PSOL", numero: 50, uf: "SP", economia: 12, costumes: 14, forca: 14 },
     { nome: "Tabata Amaral", sigla: "PSB", numero: 40, uf: "SP", economia: 36, costumes: 28, forca: 12 },
   ],
   [
-    { nome: "Eduardo Paes", sigla: "PSD", numero: 55, uf: "RJ", economia: 52, costumes: 42, forca: 15 },
-    { nome: "Raquel Lyra", sigla: "PSD", numero: 55, uf: "PE", economia: 50, costumes: 48, forca: 12 },
-    { nome: "Daniel Vilela", sigla: "MDB", numero: 15, uf: "GO", economia: 58, costumes: 62, forca: 10 },
+    { nome: "Flávio Bolsonaro", sigla: "PL", numero: 22, uf: "RJ", economia: 70, costumes: 85, forca: 23 },
+    { nome: "Jair Bolsonaro", sigla: "PL", numero: 22, uf: "RJ", economia: 70, costumes: 88, forca: 25 },
+    { nome: "Tarcísio de Freitas", sigla: "Republicanos", numero: 10, uf: "SP", economia: 72, costumes: 75, forca: 23 },
   ],
   [
-    { nome: "Tarcísio de Freitas", sigla: "Republicanos", numero: 10, uf: "SP", economia: 72, costumes: 75, forca: 23 },
-    { nome: "Michelle Bolsonaro", sigla: "PL", numero: 22, uf: "DF", economia: 68, costumes: 90, forca: 20 },
-    { nome: "Flávio Bolsonaro", sigla: "PL", numero: 22, uf: "RJ", economia: 70, costumes: 85, forca: 20 },
-    { nome: "Sérgio Moro", sigla: "PL", numero: 22, uf: "PR", economia: 68, costumes: 68, forca: 14 },
     { nome: "Ronaldo Caiado", sigla: "PSD", numero: 55, uf: "GO", economia: 70, costumes: 80, forca: 12 },
-    { nome: "Renan Santos", sigla: "MISSÃO", numero: 14, uf: "SP", economia: 85, costumes: 60, forca: 11 },
     { nome: "Romeu Zema", sigla: "NOVO", numero: 30, uf: "MG", economia: 85, costumes: 62, forca: 10 },
+    { nome: "Renan Santos", sigla: "MISSÃO", numero: 14, uf: "SP", economia: 85, costumes: 60, forca: 11 },
+    { nome: "Augusto Cury", sigla: "Avante", numero: 70, uf: "SP", economia: 50, costumes: 58, forca: 11 },
+    { nome: "Eduardo Paes", sigla: "PSD", numero: 55, uf: "RJ", economia: 52, costumes: 42, forca: 13 },
+    { nome: "Daniel Vilela", sigla: "MDB", numero: 15, uf: "GO", economia: 58, costumes: 62, forca: 10 },
   ],
 ];
 
@@ -109,7 +106,17 @@ export type Pesquisa = {
 export type ResultadoResposta = {
   resposta: string;
   mudancas: Efeito;
+  replica: "pendente" | "feita" | null;
+  textoReplica?: string;
 };
+
+// Depois de cada resposta em debate, a candidatura adversária contesta.
+export const REPLICAS: { texto: string; efeito: Efeito; retorno: string }[] = [
+  { texto: "Rebater com firmeza.", efeito: { popularidade: 2, imprensa: -1 }, retorno: "Você subiu o tom, e parte do público gostou." },
+  { texto: "Explicar com números.", efeito: { credibilidade: 2, popularidade: -1 }, retorno: "A resposta foi técnica e passou segurança." },
+  { texto: "Voltar às suas propostas.", efeito: { confianca: 2 }, retorno: "Você evitou o confronto e manteve o foco." },
+  { texto: "Atacar a trajetória da outra campanha.", efeito: { popularidade: 1, credibilidade: -2, imprensa: -2 }, retorno: "O ataque animou a militância, mas a imprensa criticou." },
+];
 
 export type Debate = {
   tipo: "debate" | "entrevista";
@@ -220,7 +227,7 @@ function fazerPesquisa(c: Campanha): Pesquisa {
 function escolherRivais(c: Campanha, candidato: Candidato) {
   const ocupados = new Set([
     partidoDoCandidato(candidato)?.sigla,
-    VICES.find((v) => v.id === candidato.viceId)?.sigla,
+    siglaDoVice(candidato),
   ]);
   const escolhidos: Rival[] = [];
   const escolher = (opcoes: Rival[]) => {
@@ -230,7 +237,11 @@ function escolherRivais(c: Campanha, candidato: Candidato) {
     escolhidos.push(rival);
     ocupados.add(rival.sigla);
   };
-  RIVAIS_POR_BLOCO.forEach(escolher);
+  // Lula é o adversário principal da esquerda, sempre que o PT estiver livre.
+  const [esquerda, direita, centro] = RIVAIS_POR_BLOCO;
+  escolher(ocupados.has("PT") ? esquerda : esquerda.slice(0, 1));
+  escolher(direita);
+  escolher(centro);
   while (escolhidos.length < 4) escolher(RIVAIS_POR_BLOCO.flat());
   return escolhidos;
 }
@@ -360,6 +371,7 @@ function montarPerguntas(c: Campanha, candidato: Candidato, quantidade: number) 
       opcoes: [
         { texto: "Vou cortar despesas em outras áreas.", economia: 75, efeito: { credibilidade: 2, popularidade: -1 } },
         { texto: "Vou buscar novas receitas e rever benefícios fiscais.", economia: 30, efeito: { popularidade: 1, congresso: -1 } },
+        { texto: "Vou fazer de forma gradual, conforme a arrecadação crescer.", efeito: { credibilidade: 1, imprensa: 1 } },
       ],
     });
   }
@@ -372,19 +384,20 @@ function montarPerguntas(c: Campanha, candidato: Candidato, quantidade: number) 
       opcoes: [
         { texto: "Mantenho as minhas posições, mesmo contrariando o partido.", efeito: { credibilidade: 3, congresso: -3 } },
         { texto: "Vou construir uma posição comum com o partido.", efeito: { congresso: 3, coerencia: -3 } },
+        { texto: "Quem governa é a chapa eleita, com diálogo com todos.", efeito: { popularidade: 1, confianca: 1 } },
       ],
     });
   }
   const evento = c.eventosRegionais.at(-1);
   if (evento) {
-    const nome = estadoDe(evento.uf).nome;
     dinamicas.push({
       id: `crise-${evento.semana}`,
       tema: "Acontecimento recente",
-      texto: `Sobre o que aconteceu em ${nome} (${evento.titulo.toLowerCase()}): o que você faria como presidente?`,
+      texto: `Sobre o que aconteceu ${noEstado(evento.uf)} (${evento.titulo.toLowerCase()}): o que você faria como presidente?`,
       opcoes: [
         { texto: "Iria ao local e coordenaria a resposta com o governo estadual.", efeito: { confianca: 3, popularidade: 1 } },
         { texto: "Criaria um fundo federal permanente para situações como essa.", economia: 30, efeito: { credibilidade: 2, popularidade: 1 } },
+        { texto: "Deixaria a condução com o governo estadual e daria apoio técnico.", economia: 65, efeito: { credibilidade: 1, popularidade: -1 } },
       ],
     });
   }
@@ -425,7 +438,7 @@ export function executarAcao(original: Campanha, candidato: Candidato, acao: Aca
     if (tumulto) aplicarEfeito(c, { imprensa: -2 });
     registrar(
       chave,
-      `Comício em ${estado.nome}: +${decimal(pontos)} no estado${tumulto ? ". Houve tumulto, e a imprensa criticou" : ""}.`,
+      `Comício ${noEstado(acao.uf)}: +${decimal(pontos)} no estado${tumulto ? ". Houve tumulto, e a imprensa criticou" : ""}.`,
     );
   }
 
@@ -435,7 +448,7 @@ export function executarAcao(original: Campanha, candidato: Candidato, acao: Aca
     mudarVoto(c, acao.uf, 0, pontos);
     c.rejeicao[acao.uf] = limitar(c.rejeicao[acao.uf] - 1.2);
     aplicarEfeito(c, { confianca: 1 });
-    registrar(chave, `Visita a ${estadoDe(acao.uf).nome}: +${decimal(pontos)} e menos rejeição no estado.`);
+    registrar(chave, `Visita ${aoEstado(acao.uf)}: +${decimal(pontos)} e menos rejeição no estado.`);
   }
 
   if (acao.tipo === "evento") {
@@ -498,8 +511,8 @@ export function descreverEfeito(efeito: Efeito) {
   return partes.length > 0 ? partes.join(", ") : "sem efeito";
 }
 
-// Sem `resposta`, o tempo acabou.
-export function responderPergunta(original: Campanha, candidato: Candidato, resposta: number | null) {
+// Sem `resposta`, o tempo acabou. Um texto é uma resposta escrita pelo jogador.
+export function responderPergunta(original: Campanha, candidato: Candidato, resposta: number | string | null) {
   const c = structuredClone(original);
   const debate = c.debate;
   if (!debate || debate.resultado) return c;
@@ -508,7 +521,11 @@ export function responderPergunta(original: Campanha, candidato: Candidato, resp
 
   let base: Efeito = { credibilidade: -3, imprensa: -2, popularidade: -1 };
   let texto = "O tempo acabou e você ficou sem resposta.";
-  if (resposta !== null) {
+  if (typeof resposta === "string") {
+    // O jogo não julga o conteúdo: resposta própria soa autêntica e rende um pouco de tudo.
+    base = { popularidade: 1, credibilidade: 1, coerencia: 1 };
+    texto = resposta;
+  } else if (resposta !== null) {
     const opcao = pergunta.opcoes[resposta];
     const distancias = [
       opcao.economia === undefined ? null : Math.abs(opcao.economia - candidato.economia),
@@ -525,7 +542,22 @@ export function responderPergunta(original: Campanha, candidato: Candidato, resp
     mudancas[nome as keyof Efeito] = Math.round(valor * peso);
   }
   aplicarEfeito(c, mudancas);
-  debate.resultado = { resposta: texto, mudancas };
+  debate.resultado = {
+    resposta: texto,
+    mudancas,
+    replica: debate.tipo === "debate" && resposta !== null ? "pendente" : null,
+  };
+  return c;
+}
+
+export function responderReplica(original: Campanha, indice: number) {
+  const c = structuredClone(original);
+  const resultado = c.debate?.resultado;
+  if (!resultado || resultado.replica !== "pendente") return c;
+  const replica = REPLICAS[indice];
+  aplicarEfeito(c, replica.efeito);
+  resultado.replica = "feita";
+  resultado.textoReplica = `${replica.retorno} ${descreverEfeito(replica.efeito)}.`;
   return c;
 }
 
@@ -553,7 +585,6 @@ function sortearEvento(c: Campanha): Evento {
   const rival = 1 + Math.floor(sortear(c) * c.rivais.length);
   const nomeRival = c.rivais[rival - 1].nome;
   const uf = escolherUm(c, ESTADOS).uf;
-  const estado = estadoDe(uf);
   const regional = (titulo: string) => c.eventosRegionais.push({ uf, semana: c.semana, titulo });
 
   const eventos: Evento[] = [
@@ -578,17 +609,17 @@ function sortearEvento(c: Campanha): Evento {
       aplicar: (x) => mudarVotoNacional(x, rival, 0.9),
     },
     {
-      titulo: `Greve no transporte em ${estado.nome}`,
+      titulo: `Greve no transporte ${noEstado(uf)}`,
       texto: "A paralisação domina o noticiário local e aumenta a cobrança sobre os candidatos.",
       aplicar: () => regional("Greve no transporte"),
     },
     {
-      titulo: `Chuvas fortes em ${estado.nome}`,
+      titulo: `Chuvas fortes ${noEstado(uf)}`,
       texto: "Moradores ficam desalojados, e a população cobra respostas dos candidatos.",
       aplicar: () => regional("Chuvas fortes"),
     },
     {
-      titulo: `Protestos em ${estado.nome}`,
+      titulo: `Protestos ${noEstado(uf)}`,
       texto: "Manifestantes vão às ruas contra o aumento do custo de vida.",
       aplicar: () => regional("Protestos contra o custo de vida"),
     },

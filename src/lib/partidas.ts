@@ -13,7 +13,7 @@ export type Partida = {
   versao: 1;
   id: string;
   nome: string;
-  cenario: 2030;
+  cenario: number;
   dificuldade: Dificuldade;
   etapa: "criacao-candidato" | "campanha" | "eleicao" | "governo" | "mandato";
   candidato?: Candidato;
@@ -50,7 +50,7 @@ export function criarPartida(dificuldade: Dificuldade) {
     versao: 1,
     id: agora.toString(36) + Math.random().toString(36).slice(2, 8),
     nome: `Partida ${proximoNumero(partidas)}`,
-    cenario: 2030,
+    cenario: 2026,
     dificuldade,
     etapa: "criacao-candidato",
     criadaEm: agora,

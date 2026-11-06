@@ -71,8 +71,7 @@ export function PassoCongresso({ governo, candidato }: { governo: Governo; candi
   return (
     <div className="formulario">
       <p className="ajuda">
-        Simulação: as bancadas partem do resultado real de 2026 e mudam com a sua vitória. O apoio não é
-        automático. Para mudar a base, volte aos ministérios.
+        Bancadas reais eleitas em 2026, com a projeção do Senado para 2027. O apoio não é automático. Para mudar a base, volte aos ministérios.
       </p>
       <div className="plenarios">
         <Plenario titulo="Câmara dos Deputados" total={DEPUTADOS} contagem={resumo.deputados} />

@@ -56,7 +56,7 @@ export function Apuracao({ turno, nomes, aoConcluir }: Props) {
 
   return (
     <section className="apuracao" aria-labelledby="titulo-apuracao">
-      <p className="sobretitulo">{turno.numero}º turno · Eleição 2030 · Simulação</p>
+      <p className="sobretitulo">{turno.numero}º turno · Eleição 2026 · Simulação</p>
       <h1 id="titulo-apuracao" className="titulo-tela">
         Apuração
       </h1>

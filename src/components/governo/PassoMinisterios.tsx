@@ -15,6 +15,7 @@ import {
   type Ministerio,
   type Pessoa,
 } from "@/lib/governo";
+import { BuscaPessoa } from "../BuscaPessoa";
 import { Janela } from "../Janela";
 
 type Props = {
@@ -47,13 +48,8 @@ function valorDaSituacao(g: Governo, ministerio: Ministerio) {
 
 export function PassoMinisterios({ governo, candidato, nomesFora, atualizar }: Props) {
   const [aberto, setAberto] = useState<Ministerio | null>(null);
-  const [partido, setPartido] = useState("todos");
   const ativos = ministeriosAtivos(governo);
   const opcoes = aberto ? candidatosAoMinisterio(governo, candidato, aberto, nomesFora) : [];
-  const siglas = [...new Set(opcoes.map((p) => p.sigla).filter((s): s is string => Boolean(s)))].sort();
-  const lista = opcoes.filter((p) =>
-    partido === "todos" ? true : partido === "tecnicos" ? !p.sigla : p.sigla === partido,
-  );
 
   function escolher(pessoa: Pessoa) {
     if (!aberto) return;
@@ -94,10 +90,7 @@ export function PassoMinisterios({ governo, candidato, nomesFora, atualizar }: P
               <button
                 type="button"
                 className={pessoa ? "acao" : "acao acao-vaga"}
-                onClick={() => {
-                  setPartido("todos");
-                  setAberto(ministerio);
-                }}
+                onClick={() => setAberto(ministerio)}
               >
                 <span className="cartao-topo">
                   <strong>{ministerio.nome}</strong>
@@ -144,32 +137,13 @@ export function PassoMinisterios({ governo, candidato, nomesFora, atualizar }: P
         aoFechar={() => setAberto(null)}
       >
         <div className="formulario">
-          <label className="campo">
-            <span className="rotulo">Mostrar</span>
-            <select value={partido} onChange={(e) => setPartido(e.target.value)}>
-              <option value="todos">Todos</option>
-              <option value="tecnicos">Técnico</option>
-              {siglas.map((sigla) => (
-                <option key={sigla} value={sigla}>
-                  {sigla}
-                </option>
-              ))}
-            </select>
-          </label>
-          <ul className="lista-pessoas">
-            {lista.map((pessoa) => (
-              <li key={pessoa.id}>
-                <button type="button" className="acao" onClick={() => escolher(pessoa)}>
-                  <span className="cartao-topo">
-                    <strong>{pessoa.nome}</strong>
-                    <span className="dado">{pessoa.sigla ?? "Técnico"}</span>
-                  </span>
-                  <span className="ajuda">{pessoa.cargo}</span>
-                  <Atributos pessoa={pessoa} candidato={candidato} />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <BuscaPessoa
+            key={aberto?.id}
+            pessoas={opcoes}
+            selecionado={aberto ? governo.ministros[aberto.id] : null}
+            aoEscolher={escolher}
+            detalhe={(pessoa) => <Atributos pessoa={pessoa} candidato={candidato} />}
+          />
         </div>
       </Janela>
     </div>

@@ -18,7 +18,7 @@ export default function Inicio() {
 
       <div className="conteudo">
         <header className="marca">
-          <p className="sobretitulo">Eleição presidencial de 2030</p>
+          <p className="sobretitulo">Eleição presidencial de 2026</p>
           <h1 className="logotipo">
             <span className="logotipo-pais">Brasil:</span>{" "}
             <span className="logotipo-cargo">Presidente</span>
@@ -30,7 +30,7 @@ export default function Inicio() {
 
         <MenuPrincipal />
 
-        <section className="cenario" aria-label="Cenário de 2030">
+        <section className="cenario" aria-label="Cenário de 2026">
           <dl>
             {CENARIO.map((item) => (
               <div key={item.rotulo}>
@@ -40,8 +40,8 @@ export default function Inicio() {
             ))}
           </dl>
           <p className="aviso">
-            Simulação fictícia. Políticos reais aparecem em um cenário hipotético: ações, pesquisas
-            e resultados são inventados pelo jogo e não preveem 2030.
+            História alternativa. Políticos reais aparecem em um cenário hipotético: ações, pesquisas
+            e resultados são inventados pelo jogo e não reproduzem fatos reais.
           </p>
         </section>
       </div>

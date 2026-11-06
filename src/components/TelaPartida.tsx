@@ -28,6 +28,21 @@ export function TelaPartida() {
     );
   }
 
+  if (partida.cenario !== 2026) {
+    return (
+      <section className="cartao">
+        <h1 className="titulo-tela">Partida da versão antiga</h1>
+        <p>
+          Esta partida começou no cenário de {partida.cenario}. O jogo agora começa em 2026, e ela não
+          pode continuar. Comece um novo jogo.
+        </p>
+        <Link className="botao botao-destaque" href="/">
+          Voltar ao menu
+        </Link>
+      </section>
+    );
+  }
+
   const candidato = candidatoDaPartida(partida);
 
   return (

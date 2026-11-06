@@ -9,10 +9,11 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - A interface fica em `src/`, com nomes em português. As cores são os tokens de `src/app/globals.css`.
 - Identidade própria: escura, com detalhes em verde-turquesa. O jogo PLANALTO serve de referência para o gênero e a organização das informações, mas nunca copie o nome, a arte, os textos ou a aparência dele.
 - Partidos e números de urna são reais, conforme a lista em `src/lib/candidato.ts`. Tamanho e posição de cada partido são estimativas do jogo.
-- Adversários e vices são políticos reais em um cenário hipotético, a pedido do dono do projeto. Confira cargo e partido antes de citar alguém.
+- O jogo começa na eleição de 2026, em uma história alternativa. Adversários, vices e ministros são políticos reais em um cenário hipotético, a pedido do dono do projeto. Confira cargo e partido antes de citar alguém.
+- A lista de deputados e senadores vem dos dados abertos do Congresso (`scripts/gerar-parlamentares.mjs`). Nomes destacados ficam em `src/lib/pessoas.ts`.
 - Pessoas reais: nunca invente crime, escândalo, fala ou opinião, não use foto delas sem licença e mantenha o aviso de simulação nas telas. Eventos negativos inventados só para o personagem do jogador.
 - Atributos de ministros reais vêm do tipo de cargo e do alinhamento na partida, nunca de uma nota pessoal. Técnicos são personagens fictícios.
 - As bancadas de `src/lib/governo.ts` partem da Câmara eleita em 2026 e da projeção do Senado para 2027.
-- O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e indicados a cargos são fictícios. Eventos nunca citam pessoas reais.
+- O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e os nomes técnicos para cargos são fictícios. Eventos nunca citam pessoas reais.
 - O mapa eleitoral vem da malha oficial do IBGE (`scripts/gerar-mapa-ufs.mjs`). Gráficos seguem as cores `--candidato-*`: a cor acompanha a candidatura, nunca a posição.
 - Todo layout tem que funcionar em celular de 375 px de largura, sem rolagem horizontal.

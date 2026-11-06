@@ -1669,6 +1669,93 @@ label.botao:has(+ .arquivo:focus-visible) {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
 }
 
+.busca-pessoa {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.acao-marcada {
+  border-color: var(--turquesa);
+  background: var(--superficie-alta);
+  box-shadow: inset 3px 0 0 var(--turquesa);
+}
+
+.mapa-escolha {
+  max-height: 16rem;
+}
+
+.respostas-replica {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.respostas-replica .resposta {
+  min-height: 3.2rem;
+  font-size: 0.92rem;
+}
+
+.resumo-mes {
+  margin-top: 0.75rem;
+  color: var(--texto-suave);
+  font-family: var(--fonte-dado), monospace;
+  font-size: 0.76rem;
+}
+
+.ultima-acao {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-left: 3px solid var(--turquesa);
+  background: var(--superficie);
+  font-size: 0.9rem;
+}
+
+.painel-voto {
+  margin-top: 1rem;
+}
+
+.barra-voto {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--linha);
+}
+
+.voto-sim {
+  background: var(--candidato-0);
+}
+
+.voto-nao {
+  background: var(--candidato-1);
+}
+
+.voto-partidos {
+  min-height: 5.5rem;
+  margin-bottom: 0;
+}
+
+.tabela-balanco caption {
+  padding-bottom: 0.3rem;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.veredito-melhorou {
+  color: var(--turquesa-claro);
+}
+
+.veredito-piorou {
+  color: var(--perigo);
+}
+
+.veredito-estável {
+  color: var(--texto-suave);
+}
+
 .tela:has(.apuracao) {
   width: min(100%, 64rem);
 }

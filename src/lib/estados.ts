@@ -49,6 +49,23 @@ export const PERFIL_REGIAO: Record<Regiao, { economia: number; costumes: number 
   Sul: { economia: 62, costumes: 62 },
 };
 
+const PREPOSICAO: Record<string, "no" | "na" | "em"> = {
+  AC: "no", AL: "em", AM: "no", AP: "no", BA: "na", CE: "no", DF: "no", ES: "no", GO: "em",
+  MA: "no", MG: "em", MS: "em", MT: "em", PA: "no", PB: "na", PE: "em", PI: "no", PR: "no",
+  RJ: "no", RN: "no", RO: "em", RR: "em", RS: "no", SC: "em", SE: "em", SP: "em", TO: "no",
+};
+
+// "na Bahia", "no Ceará", "em São Paulo".
+export function noEstado(uf: string) {
+  return `${PREPOSICAO[uf]} ${estadoDe(uf).nome}`;
+}
+
+// "à Bahia", "ao Ceará", "a São Paulo".
+export function aoEstado(uf: string) {
+  const preposicao = { no: "ao", na: "à", em: "a" }[PREPOSICAO[uf]];
+  return `${preposicao} ${estadoDe(uf).nome}`;
+}
+
 export function estadoDe(uf: string) {
   return ESTADOS.find((e) => e.uf === uf) as Estado;
 }

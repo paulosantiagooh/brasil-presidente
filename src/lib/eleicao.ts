@@ -2,8 +2,8 @@ import type { Campanha } from "./campanha";
 import type { Candidato } from "./candidato";
 import { ESTADOS } from "./estados";
 
-// Aproximação do eleitorado de 2030, usada para transformar percentuais em votos.
-const ELEITORES_NO_BRASIL = 160_000_000;
+// Aproximação do eleitorado de 2026, usada para transformar percentuais em votos.
+const ELEITORES_NO_BRASIL = 156_000_000;
 const APOIOS_POR_SEGUNDO_TURNO = 2;
 
 export type VotosUf = {

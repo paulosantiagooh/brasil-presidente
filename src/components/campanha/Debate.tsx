@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   descreverEfeito,
+  REPLICAS,
   responderPergunta,
+  responderReplica,
   seguirNoDebate,
   type Campanha,
 } from "@/lib/campanha";
@@ -53,12 +55,33 @@ function Cronometro({ total, aoAcabar }: { total: number; aoAcabar: () => void }
   );
 }
 
+function RespostaPropria({ aoResponder }: { aoResponder: (texto: string) => void }) {
+  const [texto, setTexto] = useState("");
+  return (
+    <details className="bloco espaco-topo">
+      <summary>Responder com as suas palavras</summary>
+      <label className="campo">
+        <span className="rotulo">Sua resposta</span>
+        <textarea rows={3} maxLength={300} value={texto} onChange={(e) => setTexto(e.target.value)} />
+      </label>
+      <button
+        type="button"
+        className="botao botao-destaque"
+        disabled={texto.trim().length < 5}
+        onClick={() => aoResponder(texto.trim())}
+      >
+        Responder
+      </button>
+    </details>
+  );
+}
+
 export function TelaDebate({ campanha, candidato, atualizar }: Props) {
   const debate = campanha.debate;
   if (!debate) return null;
   const { pergunta, segundos } = debate.perguntas[debate.indice];
   const ultima = debate.indice + 1 === debate.perguntas.length;
-  const responder = (resposta: number | null) =>
+  const responder = (resposta: number | string | null) =>
     atualizar((c) => responderPergunta(c, candidato, resposta));
 
   return (
@@ -79,13 +102,34 @@ export function TelaDebate({ campanha, candidato, atualizar }: Props) {
           <p>{debate.resultado.resposta}</p>
           <p className="rotulo">Consequências</p>
           <p className="dado">{descreverEfeito(debate.resultado.mudancas)}</p>
-          <button
-            type="button"
-            className="botao botao-destaque"
-            onClick={() => atualizar(seguirNoDebate)}
-          >
-            {ultima ? "Voltar à agenda" : "Próxima pergunta"}
-          </button>
+          {debate.resultado.replica === "pendente" ? (
+            <>
+              <p className="rotulo espaco-topo">Sua resposta foi contestada. Como você reage?</p>
+              <div className="respostas respostas-replica">
+                {REPLICAS.map((replica, indice) => (
+                  <button
+                    key={replica.texto}
+                    type="button"
+                    className="resposta"
+                    onClick={() => atualizar((c) => responderReplica(c, indice))}
+                  >
+                    {replica.texto}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {debate.resultado.textoReplica && <p>{debate.resultado.textoReplica}</p>}
+              <button
+                type="button"
+                className="botao botao-destaque"
+                onClick={() => atualizar(seguirNoDebate)}
+              >
+                {ultima ? "Voltar à agenda" : "Próxima pergunta"}
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -106,6 +150,7 @@ export function TelaDebate({ campanha, candidato, atualizar }: Props) {
               </button>
             ))}
           </div>
+          <RespostaPropria aoResponder={responder} />
         </>
       )}
     </section>
