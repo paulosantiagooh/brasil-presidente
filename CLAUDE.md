@@ -14,6 +14,7 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - Pessoas reais: nunca invente crime, escândalo, fala ou opinião, não use foto delas sem licença e mantenha o aviso de simulação nas telas. Eventos negativos inventados só para o personagem do jogador.
 - Ao jogar com um político real, o jogo não define a ideologia dele nem inventa denúncia: a ideologia é escolha do jogador, e eventos negativos ficam neutros.
 - O Congresso em 3D fica em `src/components/congresso/` e carrega o Three.js só quando a tela abre.
+- O drama do mandato fica em `src/lib/drama.ts`: personagens fictícios, histórias em capítulos, crises urgentes, missões e conquistas. Histórias de corrupção levam `sensivel: true` e nunca aparecem quando o jogador é uma pessoa real.
 - Atributos de ministros reais vêm do tipo de cargo e do alinhamento na partida, nunca de uma nota pessoal. Técnicos são personagens fictícios.
 - As bancadas de `src/lib/governo.ts` partem da Câmara eleita em 2026 e da projeção do Senado para 2027.
 - O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e os nomes técnicos para cargos são fictícios. Eventos nunca citam pessoas reais.

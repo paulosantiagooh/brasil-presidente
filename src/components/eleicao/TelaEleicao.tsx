@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { tocar } from "@/lib/sons";
 import { executarAcao, type Campanha } from "@/lib/campanha";
 import type { Candidato } from "@/lib/candidato";
 import {
@@ -37,10 +38,35 @@ type Props = {
   candidato: Candidato;
 };
 
+const CORES_CONFETE = ["#2dd4bf", "#f2c14e", "#e8f3f1", "#6f8cf5"];
+
+function Confete() {
+  return (
+    <div className="confete" aria-hidden="true">
+      {Array.from({ length: 36 }, (_, i) => (
+        <span
+          key={i}
+          style={{
+            left: `${(i * 37) % 100}%`,
+            background: CORES_CONFETE[i % CORES_CONFETE.length],
+            animationDelay: `${(i % 9) * 0.18}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
   const nomes = disputantes(campanha, candidato);
   const atualizar = (mudar: (e: Eleicao) => Eleicao) => atualizarEleicao(partida.id, mudar);
   const [turnoVisto, setTurnoVisto] = useState<1 | 2>(2);
+  const definido = eleicao.fase === "resultado";
+  const ganhou = eleicao.vencedor === 0;
+
+  useEffect(() => {
+    if (definido) tocar(ganhou ? "vitoria" : "derrota");
+  }, [definido, ganhou]);
   const reeleicao = partida.ciclo === 2;
   const ano = reeleicao ? 2030 : 2026;
 
@@ -195,6 +221,7 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
 
   return (
     <section className="campanha" aria-labelledby="titulo-final">
+      {venceu && <Confete />}
       <p className="sobretitulo">Resultado final · Eleição {ano} · Simulação</p>
       <h1 id="titulo-final" className="titulo-tela">
         {venceu ? "Você venceu a eleição" : `Vitória de ${vencedor.nome}`}

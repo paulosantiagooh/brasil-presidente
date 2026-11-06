@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Campanha } from "@/lib/campanha";
 import type { Candidato } from "@/lib/candidato";
 import type { Governo } from "@/lib/governo";
@@ -14,12 +14,16 @@ import {
   indicacaoPolitica,
   indicar,
   nomeDoMes,
+  notaDoGoverno,
   promessasDoMandato,
+  responderCarta,
   responderEvento,
   type Contexto,
   type Mandato,
 } from "@/lib/mandato";
+import { CONQUISTAS } from "@/lib/drama";
 import { DEFESAS_IMPEACHMENT } from "@/lib/mandato-dados";
+import { tocar } from "@/lib/sons";
 import { atualizarGoverno, atualizarMandato, disputarReeleicao, type Partida } from "@/lib/partidas";
 import { POLITICOS } from "@/lib/pessoas";
 import { BuscaPessoa } from "../BuscaPessoa";
@@ -38,6 +42,7 @@ import {
   PainelSociedade,
 } from "./Areas";
 import { numero } from "./Comum";
+import { CartaDrama, RespostaCarta } from "./CartaDrama";
 import { TelaVotacao } from "./Votacao";
 
 const ABAS = [
@@ -136,6 +141,34 @@ function TelaPendencia(props: {
   const { mandato, contexto, atualizar } = props;
   const pendencia = mandato.pendencia;
   if (!pendencia) return null;
+
+  if (pendencia.tipo === "carta") {
+    const { carta } = pendencia;
+    return (
+      <CartaDrama
+        key={carta.id}
+        quem={carta.quem}
+        titulo={carta.titulo}
+        texto={carta.texto}
+        capitulo={carta.capitulo}
+        urgente={carta.urgente}
+        opcoes={carta.opcoes.map((o) => o.texto)}
+        aoEscolher={(indice) => atualizar((m) => responderCarta(m, indice))}
+      />
+    );
+  }
+
+  if (pendencia.tipo === "carta-resposta") {
+    return (
+      <RespostaCarta
+        quem={pendencia.quem}
+        resposta={pendencia.resposta}
+        mudancas={pendencia.mudancas}
+        comentarios={pendencia.comentarios}
+        aoSeguir={() => atualizar(fecharPendencia)}
+      />
+    );
+  }
 
   if (pendencia.tipo === "impeachment") {
     return (
@@ -300,6 +333,11 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
   const melhoraram = todas.filter((v) => v === "Melhorou").length;
   const pioraram = todas.filter((v) => v === "Piorou").length;
   const aprovados = mandato.indicados.filter((i) => i.aprovado);
+  const legado = notaDoGoverno(mandato, melhoraram, todas.length);
+
+  useEffect(() => {
+    tocar(legado.pontos >= 60 ? "vitoria" : "derrota");
+  }, [legado.pontos]);
   const segundo = mandato.limite > 48;
   const perdeu = reeleicao?.venceu === false;
   // Lula já estaria no segundo mandato seguido: a Constituição não permite o terceiro.
@@ -329,6 +367,17 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
                 ? "Este seria o segundo mandato seguido, e a Constituição não permite um terceiro. A partida termina aqui."
                 : "O país volta às urnas. A Constituição permite uma reeleição. Veja como você entrega o governo."}
       </p>
+      <div className="legado">
+        <p className="legado-nota">{legado.nota}</p>
+        <div>
+          <p className="sobretitulo">O julgamento da história</p>
+          <p className="legado-titulo">{legado.titulo}</p>
+          <p className="ajuda">
+            {legado.pontos} de 100 pontos · {mandato.drama.metasFeitas.length} missões cumpridas ·{" "}
+            {mandato.drama.conquistas.length} conquistas
+          </p>
+        </div>
+      </div>
       <dl className="placar">
         <div>
           <dt>Melhoraram</dt>
@@ -395,6 +444,15 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
           </p>
         )}
         <p>Medidas escritas por você: {mandato.medidas.length}.</p>
+        {mandato.drama.conquistas.length > 0 && (
+          <ul className="mudancas">
+            {CONQUISTAS.filter((c) => mandato.drama.conquistas.includes(c.id)).map((c) => (
+              <li key={c.id} className="mudanca-boa">
+                {c.nome}
+              </li>
+            ))}
+          </ul>
+        )}
         {aprovados.length > 0 && (
           <ul className="diario">
             {aprovados.map((i) => (
@@ -437,6 +495,11 @@ function sinal(valor: number, casas = 1) {
 
 export function TelaMandato({ partida, mandato, governo, campanha, candidato }: Props) {
   const [aba, setAba] = useState<Aba>("painel");
+  const novidade = mandato.drama.novidade;
+
+  useEffect(() => {
+    if (novidade) tocar(novidade.startsWith("Missão perdida") ? "ruim" : "conquista");
+  }, [novidade]);
   const contexto: Contexto = { governo, candidato };
   const atualizar = (mudar: (m: Mandato) => Mandato) => atualizarMandato(partida.id, mudar);
   const props = { mandato, contexto, atualizar };
@@ -496,12 +559,26 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
           </dd>
         </div>
       </dl>
+      <div className={mandato.drama.pressao >= 60 ? "termometro quente" : "termometro"}>
+        <span className="barra-nome">
+          <span className="rotulo">Temperatura nas ruas</span>
+          <strong>{mandato.drama.pressao >= 60 ? "Risco de explosão" : mandato.drama.pressao >= 40 ? "Tensão" : "Calmo"}</strong>
+        </span>
+        <span className="barra" aria-hidden="true">
+          <span style={{ width: `${mandato.drama.pressao}%` }} />
+        </span>
+      </div>
 
       {mandato.resumoMes && (
         <p className="resumo-mes" role="status">
           <strong>{nomeDoMes(mandato.resumoMes.mes)}:</strong> aprovação {sinal(mandato.resumoMes.aprovacao)} · PIB{" "}
           {sinal(mandato.resumoMes.pib)} · IPCA {sinal(mandato.resumoMes.ipca)} · desemprego{" "}
           {sinal(mandato.resumoMes.desemprego)}
+        </p>
+      )}
+      {novidade && (
+        <p className={novidade.startsWith("Missão perdida") ? "faixa-novidade ruim" : "faixa-novidade"} role="status">
+          {novidade}
         </p>
       )}
       {mandato.noticias[0]?.mes === mandato.mes && (

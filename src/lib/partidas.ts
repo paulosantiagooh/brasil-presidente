@@ -8,7 +8,7 @@ import type { Dificuldade } from "./config";
 import { iniciarEleicao, type Eleicao } from "./eleicao";
 import { criarGoverno, type Governo } from "./governo";
 import { criarLoja } from "./loja";
-import { criarMandato, registrarReeleicao, type Mandato } from "./mandato";
+import { criarDrama, criarMandato, registrarReeleicao, type Mandato } from "./mandato";
 
 export type Partida = {
   versao: 1;
@@ -38,6 +38,7 @@ function completar(partida: Partida): Partida {
       cassado: partida.mandato.cassado ?? false,
       impeachmentMes: partida.mandato.impeachmentMes ?? 0,
       estataisNovas: partida.mandato.estataisNovas ?? [],
+      drama: partida.mandato.drama ?? criarDrama(),
     },
   };
 }

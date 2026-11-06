@@ -4,9 +4,13 @@ import { useState } from "react";
 import {
   acoesRestantes,
   ACOES_POR_SEMANA,
+  fecharCartaCampanha,
+  responderCartaCampanha,
   SEMANAS,
   type Campanha,
 } from "@/lib/campanha";
+import { CARTAS_CAMPANHA } from "@/lib/drama";
+import { CartaDrama, RespostaCarta } from "../mandato/CartaDrama";
 import { partidoDoCandidato, type Candidato } from "@/lib/candidato";
 import { atualizarCampanha, irAsUrnas, type Partida } from "@/lib/partidas";
 import { Agenda } from "./Agenda";
@@ -54,6 +58,31 @@ export function PainelCampanha({ partida, campanha, candidato }: Props) {
 
   if (campanha.fase === "boletim") {
     return <TelaBoletim campanha={campanha} nomes={nomes} atualizar={atualizar} />;
+  }
+
+  const cartaDaSemana = CARTAS_CAMPANHA.find((carta) => carta.id === campanha.carta);
+  if (campanha.fase === "agenda" && cartaDaSemana) {
+    return (
+      <CartaDrama
+        key={cartaDaSemana.id}
+        quem={cartaDaSemana.quem}
+        titulo={cartaDaSemana.titulo}
+        texto={cartaDaSemana.texto}
+        capitulo={`Semana ${campanha.semana} da campanha`}
+        opcoes={cartaDaSemana.opcoes.map((o) => o.texto)}
+        aoEscolher={(indice) => atualizar((c) => responderCartaCampanha(c, indice ?? 0))}
+      />
+    );
+  }
+  if (campanha.cartaResposta) {
+    return (
+      <RespostaCarta
+        quem={campanha.cartaResposta.quem}
+        resposta={campanha.cartaResposta.resposta}
+        mudancas={campanha.cartaResposta.mudancas}
+        aoSeguir={() => atualizar(fecharCartaCampanha)}
+      />
+    );
   }
 
   const encerrada = campanha.fase === "encerrada";

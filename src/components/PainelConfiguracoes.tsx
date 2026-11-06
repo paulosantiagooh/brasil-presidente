@@ -56,6 +56,11 @@ const MOVIMENTOS: Opcao<Config["movimento"]>[] = [
   { valor: "reduzido", rotulo: "Reduzidas" },
 ];
 
+const SONS: Opcao<Config["som"]>[] = [
+  { valor: "ligado", rotulo: "Ligado" },
+  { valor: "desligado", rotulo: "Desligado" },
+];
+
 export function PainelConfiguracoes() {
   const config = useConfig();
   const partidas = usePartidas();
@@ -86,6 +91,15 @@ export function PainelConfiguracoes() {
         valor={config.movimento}
         opcoes={MOVIMENTOS}
         aoMudar={(movimento) => mudarConfig({ movimento })}
+      />
+
+      <Escolha
+        nome="som"
+        titulo="Som"
+        ajuda="Alertas, votações e resultados."
+        valor={config.som}
+        opcoes={SONS}
+        aoMudar={(som) => mudarConfig({ som })}
       />
 
       <section className="ajuste">

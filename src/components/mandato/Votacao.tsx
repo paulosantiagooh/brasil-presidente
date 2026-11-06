@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { tocar } from "@/lib/sons";
 import type { Casa } from "@/lib/governo";
 import {
   colocarEmVotacao,
@@ -82,6 +83,14 @@ export function TelaVotacao({ mandato, contexto, atualizar }: Props) {
     }, INTERVALO_MS);
     return () => window.clearInterval(relogio);
   }, [resultado, totalPartidos]);
+
+  const encerrou = Boolean(resultado) && passo >= totalPartidos;
+  const aprovado = resultado?.aprovado;
+
+  useEffect(() => {
+    if (encerrou) tocar(aprovado ? "martelo" : "derrota");
+    else if (resultado && passo > 0) tocar("tique");
+  }, [encerrou, aprovado, passo, resultado]);
 
   if (!votacao) return null;
   const { proposta, concessoes } = votacao;

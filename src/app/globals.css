@@ -1785,6 +1785,266 @@ label.botao:has(+ .arquivo:focus-visible) {
   font-weight: 700;
 }
 
+.carta {
+  position: relative;
+  display: grid;
+  gap: 0.9rem;
+  max-width: 44rem;
+  margin-inline: auto;
+  animation: entrada 0.35s ease-out both;
+}
+
+.carta-urgente {
+  padding: 1rem;
+  border: 2px solid var(--perigo);
+  border-radius: 8px;
+  background: var(--perigo-fundo);
+  animation: pulso-urgente 1.2s ease-in-out infinite;
+}
+
+@keyframes pulso-urgente {
+  50% {
+    box-shadow: 0 0 34px rgb(251 138 126 / 0.45);
+  }
+}
+
+.faixa-urgente {
+  justify-self: start;
+  padding: 0.15rem 0.7rem;
+  border-radius: 4px;
+  background: var(--perigo);
+  color: #2a0d0a;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.faixa-virada {
+  margin-top: 0.75rem;
+  animation: entrada 0.3s ease-out both;
+}
+
+.rosto {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.rosto-foto {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  color: #071012;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.rosto-papel {
+  display: block;
+}
+
+.fala {
+  position: relative;
+  padding: 0.9rem 1rem;
+  border-radius: 0 10px 10px 10px;
+  background: var(--superficie-alta);
+  font-size: 1.08rem;
+  line-height: 1.45;
+}
+
+.fala-resultado {
+  border-left: 3px solid var(--turquesa);
+  font-style: italic;
+}
+
+.relogio-urgente {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--perigo);
+}
+
+.relogio-urgente .barra span {
+  background: var(--perigo);
+}
+
+.respostas-carta {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 0;
+}
+
+.respostas-carta .resposta {
+  min-height: 3.4rem;
+}
+
+.mudancas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mudancas li {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mudanca-boa {
+  background: rgb(45 212 191 / 0.15);
+  color: var(--turquesa-claro);
+}
+
+.mudanca-ruim {
+  background: rgb(251 138 126 / 0.15);
+  color: var(--perigo);
+}
+
+.redes {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.redes li {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  background: var(--fundo-alto);
+}
+
+.jornal {
+  grid-column: 1 / -1;
+  padding: 0.9rem 1rem;
+  border-radius: 6px;
+  background: #e8e4d8;
+  color: #16140f;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.jornal-nome {
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid #16140f;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.jornal h2 {
+  margin-top: 0.45rem;
+  font-size: clamp(1.45rem, 5vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.missoes {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.missoes li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--aviso);
+  background: var(--fundo-alto);
+  font-size: 0.92rem;
+}
+
+.termometro {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.7rem;
+}
+
+.termometro .barra span {
+  background: var(--aviso);
+}
+
+.termometro.quente .barra span {
+  background: var(--perigo);
+}
+
+.termometro.quente strong {
+  color: var(--perigo);
+}
+
+.faixa-novidade {
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  background: var(--aviso);
+  color: #2c2410;
+  font-weight: 600;
+  animation: entrada 0.3s ease-out both;
+}
+
+.faixa-novidade.ruim {
+  background: var(--perigo);
+  color: #2a0d0a;
+}
+
+.plateia {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+.legado {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--aviso);
+  border-radius: 8px;
+  background: var(--aviso-fundo);
+}
+
+.legado-nota {
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--aviso);
+}
+
+.legado-titulo {
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.confete {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confete span {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: cair 3.2s ease-in forwards;
+}
+
+@keyframes cair {
+  to {
+    opacity: 0;
+    transform: translateY(105vh) rotate(540deg);
+  }
+}
+
 .tela:has(.apuracao) {
   width: min(100%, 64rem);
 }

@@ -9,12 +9,14 @@ export type Config = {
   dificuldade: Dificuldade;
   texto: "normal" | "grande";
   movimento: "normal" | "reduzido";
+  som: "ligado" | "desligado";
 };
 
 export const CONFIG_PADRAO: Config = {
   dificuldade: "media",
   texto: "normal",
   movimento: "normal",
+  som: "ligado",
 };
 
 export const NOME_DIFICULDADE: Record<Dificuldade, string> = {

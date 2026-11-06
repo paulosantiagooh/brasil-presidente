@@ -1,3 +1,4 @@
+import { CARTAS_CAMPANHA } from "./drama";
 import { calcularAtributos, distanciaDoPartido, partidoDoCandidato, siglaDoVice, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
 import { aoEstado, ESTADOS, estadoDe, noEstado, PERFIL_REGIAO, type Regiao } from "./estados";
@@ -151,6 +152,9 @@ export type Campanha = {
   eventosRegionais: { uf: string; semana: number; titulo: string }[];
   debate: Debate | null;
   pessoaReal?: boolean;
+  carta?: string | null;
+  cartaResposta?: { quem: string; resposta: string; mudancas: { texto: string; bom: boolean }[] } | null;
+  cartasVistas?: string[];
 };
 
 const limitar = (valor: number, minimo = 0, maximo = 100) =>
@@ -314,6 +318,43 @@ export function criarCampanha(id: string, candidato: Candidato, dificuldade: Dif
 
   c.pesquisas.push(fazerPesquisa(c));
   c.semana = 1;
+  sortearCarta(c);
+  return c;
+}
+
+// O dilema da semana: alguém da equipe traz uma decisão difícil.
+function sortearCarta(c: Campanha) {
+  const vistas = c.cartasVistas ?? [];
+  const livres = CARTAS_CAMPANHA.filter((carta) => !vistas.includes(carta.id) && !(c.pessoaReal && carta.sensivel));
+  const carta = livres.length > 0 ? escolherUm(c, livres) : null;
+  c.carta = carta?.id ?? null;
+  c.cartaResposta = null;
+  if (carta) c.cartasVistas = [...vistas, carta.id];
+}
+
+const EFEITO_LEGIVEL: Record<string, string> = {
+  popularidade: "Popularidade", credibilidade: "Credibilidade", confianca: "Confiança",
+  imprensa: "Imprensa", congresso: "Congresso", coerencia: "Coerência",
+};
+
+export function responderCartaCampanha(original: Campanha, indice: number) {
+  const c = structuredClone(original);
+  const carta = CARTAS_CAMPANHA.find((item) => item.id === c.carta);
+  if (!carta) return c;
+  const opcao = carta.opcoes[indice];
+  aplicarEfeito(c, opcao.efeito);
+  c.carta = null;
+  c.cartaResposta = {
+    quem: carta.quem,
+    resposta: opcao.resposta,
+    mudancas: Object.entries(opcao.efeito).map(([nome, valor]) => ({ texto: EFEITO_LEGIVEL[nome] ?? nome, bom: valor > 0 })),
+  };
+  return c;
+}
+
+export function fecharCartaCampanha(original: Campanha) {
+  const c = structuredClone(original);
+  c.cartaResposta = null;
   return c;
 }
 
@@ -705,6 +746,7 @@ export function seguirCampanha(original: Campanha) {
   c.semana += 1;
   c.acoes = [];
   c.fase = "agenda";
+  sortearCarta(c);
   return c;
 }
 

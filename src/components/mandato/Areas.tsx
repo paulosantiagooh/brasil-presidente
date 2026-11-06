@@ -45,6 +45,7 @@ import {
   type AreaDoProjeto,
 } from "@/lib/mandato-dados";
 import { POLITICOS } from "@/lib/pessoas";
+import { JORNAL } from "@/lib/drama";
 import { BuscaPessoa } from "../BuscaPessoa";
 import { Congresso3D } from "../congresso/Congresso3D";
 import { Janela } from "../Janela";
@@ -66,8 +67,44 @@ function useAcao({ mandato, contexto, atualizar }: Props) {
 
 export function Painel({ mandato, campanha }: { mandato: Mandato; campanha: Campanha }) {
   const promessas = promessasDoMandato(mandato, campanha);
+  const { manchete, metas, feed } = mandato.drama;
   return (
     <div className="areas">
+      {manchete && (
+        <article className="jornal">
+          <p className="jornal-nome">{JORNAL}</p>
+          <h2>{manchete.titulo}</h2>
+          <p>{manchete.subtitulo}</p>
+        </article>
+      )}
+      <Bloco titulo="Missões">
+        {metas.length === 0 ? (
+          <p className="ajuda">Sem missões ativas.</p>
+        ) : (
+          <ul className="missoes">
+            {metas.map((meta) => (
+              <li key={meta.id}>
+                <strong>{meta.texto}</strong>
+                <span className="dado">
+                  Até {nomeDoMes(meta.prazo)} · Prêmio: {meta.premio}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3 className="rotulo">Redes sociais</h3>
+        {feed.length === 0 ? (
+          <p className="ajuda">O país ainda está esperando o primeiro mês do governo.</p>
+        ) : (
+          <ul className="redes">
+            {feed.slice(0, 5).map((post, indice) => (
+              <li key={indice}>
+                <span className="dado">{post.usuario}</span> {post.texto}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Bloco>
       <Bloco titulo="Aprovação do governo">
         <Serie historico={mandato.historico} campo="aprovacao" nome="Aprovação" sufixo="%" />
         <h3 className="rotulo">Por grupo da população</h3>

@@ -1,5 +1,6 @@
 import type { Campanha } from "./campanha";
 import type { Candidato } from "./candidato";
+import { CARTA_RUAS, CARTAS, COMENTARIOS, CONQUISTAS, METAS_BASE, TITULOS_LEGADO, USUARIOS, type Carta } from "./drama";
 import type { Eleicao } from "./eleicao";
 import type { Pessoa } from "./pessoas";
 import { AREAS, calcularBalanco, custoDoOrcamento, estimarVotos, pastasDoPartido, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
@@ -81,6 +82,33 @@ export type Registro = {
   mes: number; aprovacao: number; pib: number; ipca: number; selic: number; desemprego: number; divida: number; dolar: number;
 };
 
+export type Comentario = { usuario: string; texto: string };
+
+export type MetaAtiva = { id: string; texto: string; premio: string; prazo: number };
+
+export type Drama = {
+  flags: string[];
+  agenda: { id: string; mes: number }[];
+  vistas: string[];
+  pressao: number;
+  metas: MetaAtiva[];
+  metasFeitas: string[];
+  metasFalhas: string[];
+  conquistas: string[];
+  novidade: string | null;
+  feed: (Comentario & { mes: number })[];
+  manchete: { titulo: string; subtitulo: string } | null;
+  urgentesOk: number;
+  finais: number;
+};
+
+export function criarDrama(): Drama {
+  return {
+    flags: [], agenda: [], vistas: [], pressao: 30, metas: [], metasFeitas: [], metasFalhas: [],
+    conquistas: [], novidade: null, feed: [], manchete: null, urgentesOk: 0, finais: 0,
+  };
+}
+
 export type PropostaEmVoto = {
   nome: string;
   tipo: string;
@@ -103,6 +131,8 @@ export type ResultadoVoto = { aprovado: boolean; camara: Casa; senado: Casa | nu
 export type Pendencia =
   | { tipo: "evento"; evento: EventoMandato }
   | { tipo: "impeachment" }
+  | { tipo: "carta"; carta: Carta }
+  | { tipo: "carta-resposta"; quem: string; resposta: string; mudancas: { texto: string; bom: boolean }[]; comentarios: Comentario[] }
   | { tipo: "votacao"; proposta: PropostaEmVoto; concessoes: Concessoes; resultado: ResultadoVoto | null }
   | { tipo: "indicacao"; vaga: Vaga }
   | { tipo: "resultado-indicacao"; titulo: string; texto: string; sim: number; nao: number };
@@ -142,6 +172,8 @@ export type Mandato = {
   cassado: boolean;
   impeachmentMes: number;
   estataisNovas: { id: string; nome: string; listada: boolean; valor: number }[];
+  drama: Drama;
+  pessoaReal?: boolean;
 };
 
 export type Contexto = { governo: Governo; candidato: Candidato };
@@ -212,7 +244,10 @@ export function criarMandato(contexto: Contexto, campanha: Campanha, eleicao: El
     cassado: false,
     impeachmentMes: 0,
     estataisNovas: [],
+    drama: criarDrama(),
+    pessoaReal: Boolean(contexto.candidato.pessoaReal),
   };
+  preencherMetas(m);
   m.inicio = structuredClone({
     economia: m.economia,
     sociedade: m.sociedade,
@@ -238,9 +273,198 @@ function aplicar(m: Mandato, efeito: Efeito) {
     else if (grupo === "r") {
       const parceiro = RELACAO_POR_APELIDO[campo] ?? campo;
       m.relacoes[parceiro] = limitar((m.relacoes[parceiro] ?? 60) + valor);
-    } else if (chave === "aprovacao") m.aprovacao = limitar(m.aprovacao + valor);
+    } else if (chave === "pressao") m.drama.pressao = limitar(m.drama.pressao + valor);
+    else if (chave === "aprovacao") m.aprovacao = limitar(m.aprovacao + valor);
     else if (chave === "congresso") m.congresso = limitar(m.congresso + valor);
   }
+}
+
+const PREMIOS: Record<string, Efeito> = {
+  inflacao: { aprovacao: 4 }, desemprego: { aprovacao: 4 }, pib: { aprovacao: 4 }, selic: { "e.confianca": 5 },
+  aprovacao: { congresso: 5 }, obras: { aprovacao: 3 }, leis: { congresso: 5 }, pobreza: { aprovacao: 4 },
+  diplomacia: { "e.exportacoes": 8 }, saude: { aprovacao: 3 },
+};
+
+const META_CUMPRIDA: Record<string, (m: Mandato) => boolean> = {
+  inflacao: (m) => m.economia.ipca < 4,
+  desemprego: (m) => m.economia.desemprego < 5.5,
+  pib: (m) => m.economia.pib > 2.5,
+  selic: (m) => m.economia.selic < 11,
+  aprovacao: (m) => m.aprovacao >= 60,
+  obras: (m) => m.obras.filter((o) => o.situacao === "concluida").length >= 2,
+  leis: (m) => m.votacoes.filter((v) => v.aprovado).length >= 3,
+  pobreza: (m) => m.economia.pobreza < 21,
+  diplomacia: (m) => Object.values(m.relacoes).some((r) => r >= 85),
+  saude: (m) => m.sociedade.saude >= 60,
+};
+
+function preencherMetas(m: Mandato) {
+  const d = m.drama;
+  const livres = METAS_BASE.filter(
+    (meta) => !d.metasFeitas.includes(meta.id) && !d.metasFalhas.includes(meta.id) && !d.metas.some((a) => a.id === meta.id),
+  );
+  while (d.metas.length < 3 && livres.length > 0) {
+    const [meta] = livres.splice(Math.floor(sortear(m) * livres.length), 1);
+    d.metas.push({ id: meta.id, texto: meta.texto, premio: meta.premio, prazo: m.mes + meta.meses });
+  }
+}
+
+function conquistar(m: Mandato, id: string) {
+  if (m.drama.conquistas.includes(id)) return;
+  m.drama.conquistas.push(id);
+  const conquista = CONQUISTAS.find((c) => c.id === id);
+  if (conquista) m.drama.novidade = `Conquista: ${conquista.nome}`;
+}
+
+function avaliarMetas(m: Mandato) {
+  const d = m.drama;
+  for (const meta of [...d.metas]) {
+    if (META_CUMPRIDA[meta.id]?.(m)) {
+      d.metas = d.metas.filter((a) => a.id !== meta.id);
+      d.metasFeitas.push(meta.id);
+      aplicar(m, PREMIOS[meta.id] ?? {});
+      d.novidade = `Missão cumprida: ${meta.texto}. ${meta.premio}`;
+    } else if (m.mes >= meta.prazo) {
+      d.metas = d.metas.filter((a) => a.id !== meta.id);
+      d.metasFalhas.push(meta.id);
+      aplicar(m, { aprovacao: -2 });
+      d.novidade = `Missão perdida: ${meta.texto}. Aprovação -2`;
+    }
+  }
+  preencherMetas(m);
+
+  if (m.votacoes.some((v) => v.aprovado)) conquistar(m, "primeira-lei");
+  if (m.votacoes.some((v) => v.aprovado && v.camara.necessarios === 308)) conquistar(m, "emenda");
+  if (d.urgentesOk >= 5) conquistar(m, "sangue-frio");
+  if (d.metasFeitas.length >= 3) conquistar(m, "tres-metas");
+  if (m.aprovacao >= 60) conquistar(m, "acima-de-60");
+  if (m.aprovacao < 25) conquistar(m, "abaixo-de-25");
+  if (m.obras.filter((o) => o.situacao === "concluida").length >= 5) conquistar(m, "pedreiro");
+  if (Object.values(m.relacoes).filter((r) => r >= 85).length >= 3) conquistar(m, "diplomata");
+  if (d.finais >= 4) conquistar(m, "historias");
+}
+
+function comentar(m: Mandato, tom: "bom" | "ruim" | "neutro", quantidade: number) {
+  const novos: Comentario[] = [];
+  for (let i = 0; i < quantidade; i++) {
+    const lista = COMENTARIOS[tom];
+    novos.push({
+      usuario: USUARIOS[Math.floor(sortear(m) * USUARIOS.length)],
+      texto: lista[Math.floor(sortear(m) * lista.length)],
+    });
+  }
+  m.drama.feed = [...novos.map((n) => ({ ...n, mes: m.mes })), ...m.drama.feed].slice(0, 12);
+  return novos;
+}
+
+function gerarManchete(m: Mandato, anterior: Registro) {
+  const queda = m.aprovacao - anterior.aprovacao;
+  const e = m.economia;
+  const opcoes: { titulo: string; subtitulo: string; peso: number }[] = [
+    { titulo: "Governo derrete nas pesquisas", subtitulo: `Aprovação cai para ${Math.round(m.aprovacao)}%, e aliados começam a se afastar`, peso: queda <= -2 ? -queda * 3 : 0 },
+    { titulo: "Popularidade do governo dispara", subtitulo: `Aprovação sobe para ${Math.round(m.aprovacao)}%`, peso: queda >= 2 ? queda * 3 : 0 },
+    { titulo: "Inflação assusta famílias", subtitulo: `IPCA em ${e.ipca.toFixed(1).replace(".", ",")}%, e o carrinho do mercado encolhe`, peso: (e.ipca - 5) * 2 },
+    { titulo: "Dólar bate recorde do mandato", subtitulo: `Moeda americana chega a R$ ${e.dolar.toFixed(2).replace(".", ",")}`, peso: (e.dolar - 6) * 3 },
+    { titulo: "Economia acelera e surpreende", subtitulo: `PIB cresce ${e.pib.toFixed(1).replace(".", ",")}%`, peso: (e.pib - 2.4) * 3 },
+    { titulo: "Desemprego preocupa o Planalto", subtitulo: `Taxa chega a ${e.desemprego.toFixed(1).replace(".", ",")}%`, peso: (e.desemprego - 7) * 3 },
+    { titulo: "Ruas fervem contra o governo", subtitulo: "Temperatura política sobe, e o Palácio teme novos protestos", peso: (m.drama.pressao - 55) / 5 },
+    { titulo: "Brasília ferve nos bastidores", subtitulo: "Líderes negociam, ministros disputam espaço e ninguém dorme", peso: 0.3 },
+  ];
+  const melhor = opcoes.sort((a, b) => b.peso - a.peso)[0];
+  m.drama.manchete = { titulo: melhor.titulo, subtitulo: melhor.subtitulo };
+}
+
+function escolherCarta(m: Mandato): Carta | null {
+  const d = m.drama;
+  const devida = d.agenda.find((a) => a.mes <= m.mes);
+  if (devida) {
+    d.agenda = d.agenda.filter((a) => a !== devida);
+    return CARTAS.find((c) => c.id === devida.id) ?? null;
+  }
+  const livres = CARTAS.filter(
+    (c) =>
+      !c.somenteAgendada &&
+      !(m.pessoaReal && c.sensivel) &&
+      !d.vistas.includes(c.id) &&
+      (c.requer ?? []).every((f) => d.flags.includes(f)) &&
+      !(c.bloqueia ?? []).some((f) => d.flags.includes(f)),
+  );
+  if (livres.length > 0) return livres[Math.floor(sortear(m) * livres.length)];
+  // Acabaram as novidades: os dilemas do dia a dia podem voltar, mas as histórias não se repetem.
+  const repetiveis = CARTAS.filter(
+    (c) => !c.capitulo && !c.urgente && !(c.bloqueia ?? []).some((f) => d.flags.includes(f)) && c.id !== d.vistas.at(-1),
+  );
+  return repetiveis.length > 0 ? repetiveis[Math.floor(sortear(m) * repetiveis.length)] : null;
+}
+
+const NOME_EFEITO: Record<string, { nome: string; invertido?: boolean }> = {
+  aprovacao: { nome: "Aprovação" },
+  congresso: { nome: "Relação com o Congresso" },
+  pressao: { nome: "Clima nas ruas", invertido: true },
+  "e.confianca": { nome: "Confiança do mercado" },
+  "e.dolar": { nome: "Dólar", invertido: true },
+  "e.primario": { nome: "Contas públicas" },
+  "e.divida": { nome: "Dívida", invertido: true },
+  "e.ipca": { nome: "Inflação", invertido: true },
+  "e.pib": { nome: "Crescimento" },
+  "e.reservas": { nome: "Reservas" },
+  "e.pobreza": { nome: "Combate à pobreza", invertido: true },
+  "e.investimento": { nome: "Investimentos" },
+  "e.exportacoes": { nome: "Exportações" },
+  "s.confianca": { nome: "Confiança nas instituições" },
+  "s.saude": { nome: "Saúde" },
+  "s.educacao": { nome: "Educação" },
+  "s.ambiente": { nome: "Meio ambiente" },
+  "p.crime": { nome: "Combate ao crime", invertido: true },
+  "p.fronteiras": { nome: "Fronteiras" },
+};
+
+export function resumirEfeito(efeito: Efeito) {
+  return Object.entries(efeito)
+    .filter(([chave, valor]) => valor !== 0 && NOME_EFEITO[chave])
+    .map(([chave, valor]) => {
+      const dados = NOME_EFEITO[chave];
+      return { texto: dados.nome, bom: dados.invertido ? valor < 0 : valor > 0 };
+    });
+}
+
+export function responderCarta(original: Mandato, opcao: number | null): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "carta") return m;
+  const { carta } = m.pendencia;
+  const d = m.drama;
+  const escolhida = opcao === null ? carta.semResposta ?? carta.opcoes[0] : carta.opcoes[opcao];
+  const extras = escolhida as { define?: string[]; depois?: { id: string; meses: number } };
+  aplicar(m, escolhida.efeito);
+  d.vistas.push(carta.id);
+  d.flags.push(...(extras.define ?? []));
+  if (extras.depois) d.agenda.push({ id: extras.depois.id, mes: m.mes + extras.depois.meses });
+  if (carta.urgente && opcao !== null) d.urgentesOk += 1;
+  if (carta.capitulo?.includes("final")) d.finais += 1;
+
+  const mudancas = resumirEfeito(escolhida.efeito);
+  const boas = mudancas.filter((x) => x.bom).length;
+  const tom = boas * 2 > mudancas.length ? "bom" : boas * 2 < mudancas.length ? "ruim" : "neutro";
+  noticiar(m, `${carta.titulo}: ${escolhida.resposta}`);
+  m.pendencia = {
+    tipo: "carta-resposta",
+    quem: carta.quem,
+    resposta: escolhida.resposta,
+    mudancas,
+    comentarios: comentar(m, tom, 2),
+  };
+  return m;
+}
+
+export function notaDoGoverno(m: Mandato, melhoraram: number, total: number) {
+  const pontos = Math.round(
+    limitar(
+      (melhoraram / Math.max(1, total)) * 35 + m.aprovacao * 0.45 + m.drama.metasFeitas.length * 3 +
+        m.drama.conquistas.length * 1.5 - (m.cassado ? 25 : 0),
+    ),
+  );
+  const faixa = TITULOS_LEGADO.find((t) => pontos >= t.minimo) ?? TITULOS_LEGADO[TITULOS_LEGADO.length - 1];
+  return { pontos, nota: faixa.nota, titulo: faixa.titulo };
 }
 
 export type Medida = {
@@ -674,8 +898,16 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
 
   avancarObras(m);
   simularMes(m);
+  const d = m.drama;
+  d.pressao = limitar(
+    d.pressao + (46 - m.aprovacao) * 0.09 + Math.max(0, m.economia.ipca - 5) * 0.5 + Math.max(0, m.economia.desemprego - 7) * 0.5 - 0.5,
+  );
+  d.novidade = null;
   m.aprovacao = Math.round(m.aprovacao * 10) / 10;
   m.historico.push(registrar(m));
+  avaliarMetas(m);
+  gerarManchete(m, anterior);
+  comentar(m, m.aprovacao >= anterior.aprovacao ? "bom" : "ruim", 1);
   m.resumoMes = {
     mes: m.mes,
     aprovacao: m.aprovacao - anterior.aprovacao,
@@ -707,12 +939,27 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     m.fase = "pendencia";
     return m;
   }
+  if (d.pressao >= 78) {
+    d.pressao -= 15;
+    m.pendencia = { tipo: "carta", carta: CARTA_RUAS };
+    m.fase = "pendencia";
+    return m;
+  }
   if (MESES_DA_MESA.includes(m.mes)) {
     m.pendencia = { tipo: "evento", evento: EVENTO_MESA };
     m.fase = "pendencia";
     return m;
   }
-  if (sortear(m) < 0.3) {
+  // Quase todo mês alguém bate à sua porta com um problema.
+  if (d.agenda.some((a) => a.mes <= m.mes) || sortear(m) < 0.72) {
+    const carta = escolherCarta(m);
+    if (carta) {
+      m.pendencia = { tipo: "carta", carta };
+      m.fase = "pendencia";
+      return m;
+    }
+  }
+  if (sortear(m) < 0.5) {
     const livres = EVENTOS_MANDATO.filter((e) => !m.eventosVistos.slice(-6).includes(e.id));
     const evento = livres[Math.floor(sortear(m) * livres.length)];
     m.eventosVistos.push(evento.id);
@@ -797,6 +1044,7 @@ export function defenderImpeachment(original: Mandato, contexto: Contexto, defes
   const camara = votar(m, contexto, { economia: 50, camara: 172, senado: 0 }, apoio).camara;
   if (camara.aprovado) {
     aplicar(m, { congresso: 2 });
+    conquistar(m, "sobreviveu");
     noticiar(m, "A Câmara barra o pedido de impeachment.");
     m.pendencia = {
       tipo: "resultado-indicacao",
@@ -810,6 +1058,7 @@ export function defenderImpeachment(original: Mandato, contexto: Contexto, defes
   const senado = votar(m, contexto, { economia: 50, camara: 0, senado: 28 }, apoio).senado;
   const sobreviveu = Boolean(senado?.aprovado);
   m.cassado = !sobreviveu;
+  if (sobreviveu) conquistar(m, "sobreviveu");
   noticiar(m, sobreviveu ? "O Senado absolve o governo no impeachment." : "O Senado aprova o impeachment.");
   m.pendencia = {
     tipo: "resultado-indicacao",

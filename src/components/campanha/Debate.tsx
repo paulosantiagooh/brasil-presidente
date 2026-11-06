@@ -10,6 +10,7 @@ import {
   type Campanha,
 } from "@/lib/campanha";
 import type { Candidato } from "@/lib/candidato";
+import { tocar } from "@/lib/sons";
 
 const AVISO_SEGUNDOS = 10;
 
@@ -31,7 +32,10 @@ function Cronometro({ total, aoAcabar }: { total: number; aoAcabar: () => void }
     const fim = Date.now() + total * 1000;
     const relogio = window.setInterval(() => {
       const faltam = Math.max(0, Math.ceil((fim - Date.now()) / 1000));
-      setRestante(faltam);
+      setRestante((antes) => {
+        if (antes !== faltam && faltam > 0 && faltam <= 5) tocar("tique");
+        return faltam;
+      });
       if (faltam === 0) {
         window.clearInterval(relogio);
         acabar.current();
@@ -50,6 +54,26 @@ function Cronometro({ total, aoAcabar }: { total: number; aoAcabar: () => void }
       </div>
       <span className="barra" aria-hidden="true">
         <span style={{ width: `${(restante / total) * 100}%` }} />
+      </span>
+    </div>
+  );
+}
+
+// A reação do público depois de cada resposta.
+function Plateia({ pontos }: { pontos: number }) {
+  const nivel = Math.min(100, Math.max(5, 50 + pontos * 7));
+  useEffect(() => {
+    tocar(pontos >= 0 ? "bom" : "ruim");
+  }, [pontos]);
+  const frase = pontos >= 4 ? "A plateia aplaudiu de pé!" : pontos >= 1 ? "Murmúrios de aprovação." : pontos === 0 ? "Silêncio no estúdio." : "Vaias ao fundo do estúdio.";
+  return (
+    <div className="plateia">
+      <span className="barra-nome">
+        <span className="rotulo">Termômetro da plateia</span>
+        <strong>{frase}</strong>
+      </span>
+      <span className="barra" aria-hidden="true">
+        <span style={{ width: `${nivel}%` }} />
       </span>
     </div>
   );
@@ -102,6 +126,7 @@ export function TelaDebate({ campanha, candidato, atualizar }: Props) {
           <p>{debate.resultado.resposta}</p>
           <p className="rotulo">Consequências</p>
           <p className="dado">{descreverEfeito(debate.resultado.mudancas)}</p>
+          <Plateia pontos={Object.values(debate.resultado.mudancas).reduce((soma, valor) => soma + valor, 0)} />
           {debate.resultado.replica === "pendente" ? (
             <>
               <p className="rotulo espaco-topo">Sua resposta foi contestada. Como você reage?</p>

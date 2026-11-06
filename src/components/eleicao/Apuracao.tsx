@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { tocar } from "@/lib/sons";
 import { liderDaUf, percentualValido, totalDoTurno, type Turno } from "@/lib/eleicao";
 import { ESTADOS } from "@/lib/estados";
 import { ALTURA_MAPA, LARGURA_MAPA } from "@/lib/mapa";
@@ -55,6 +56,24 @@ export function Apuracao({ turno, nomes, ano, aoConcluir }: Props) {
     .map((indice) => ({ ...nomes[indice], indice, parte: percentualValido(parcial, indice) }))
     .sort((a, b) => b.parte - a.parte);
 
+  const lider = ranking[0];
+  const vice = ranking[1];
+  const liderVisto = useRef<number | null>(null);
+  const [virada, setVirada] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (apurados === 0) return;
+    if (liderVisto.current !== null && liderVisto.current !== lider.indice) {
+      setVirada(`Virada! ${lider.indice === 0 ? "Você" : lider.nome} assume a liderança`);
+      tocar("urgente");
+    } else if (apurados % 4 === 0) {
+      tocar("tique");
+    }
+    liderVisto.current = lider.indice;
+  }, [apurados, lider.indice, lider.nome]);
+
+  const margem = apurados > 0 ? lider.parte - vice.parte : 0;
+
   return (
     <section className="apuracao" aria-labelledby="titulo-apuracao">
       <p className="sobretitulo">{turno.numero}º turno · Eleição {ano} · Simulação</p>
@@ -67,6 +86,18 @@ export function Apuracao({ turno, nomes, ano, aoConcluir }: Props) {
       <span className="barra" aria-hidden="true">
         <span style={{ width: `${urnas}%` }} />
       </span>
+      {virada ? (
+        <p className="faixa-urgente faixa-virada" role="status">
+          {virada}
+        </p>
+      ) : (
+        apurados > 0 &&
+        margem < 3 && (
+          <p className="ajuda" role="status">
+            Disputa apertadíssima: {formatoPercentual.format(margem)} ponto de diferença.
+          </p>
+        )
+      )}
 
       <div className="apuracao-corpo">
         <ul className="barras-candidatos">
