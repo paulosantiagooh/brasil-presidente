@@ -4,6 +4,8 @@ Simulador político e de administração pública. O jogador disputa a eleição
 
 O cenário é uma simulação: o jogo não presume candidatos nem resultados reais de 2030.
 
+**Jogue agora:** https://paulosantiagooh.github.io/brasil-presidente/
+
 ## Estado atual
 
 Etapas 1 a 5 do plano, que completam a primeira versão jogável: tela inicial navegável, partidas salvas no aparelho, configurações, criação do candidato, campanha de cinco semanas, eleição em dois turnos e formação do governo, com ministérios, Congresso, orçamento, primeiras decisões e a primeira votação. Tudo funciona no computador e no celular. A próxima etapa é a administração completa.

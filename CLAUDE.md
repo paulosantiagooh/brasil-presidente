@@ -3,7 +3,8 @@
 O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa nova.
 
 - Fale em português, em palavras simples. Quem pede as mudanças não é programador.
-- Depois de cada mudança pronta e testada: `npm run typecheck`, `npm run build`, commit e `git push`. O dono do projeto quer tudo sempre atualizado no GitHub.
+- Depois de cada mudança pronta e testada: `npm run typecheck`, `npm run build`, commit, `git push` e `npm run publicar`. O dono do projeto quer tudo sempre atualizado no GitHub e no ar.
+- O repositório é público e o jogo roda em https://paulosantiagooh.github.io/brasil-presidente/ (GitHub Pages, branch `gh-pages`). Nunca coloque segredo ou dado pessoal no código.
 - Construa uma etapa por vez, na ordem da seção 23 do documento. Cada módulo funciona antes de ser integrado.
 - A interface fica em `src/`, com nomes em português. As cores são os tokens de `src/app/globals.css`.
 - Identidade própria: escura, com detalhes em verde-turquesa. O jogo PLANALTO serve de referência para o gênero e a organização das informações, mas nunca copie o nome, a arte, os textos ou a aparência dele.
