@@ -6,6 +6,7 @@ import { NOME_DIFICULDADE } from "@/lib/config";
 import { candidatoDaPartida, formatarData, iniciarCampanha, usePartidas } from "@/lib/partidas";
 import { PainelCampanha } from "./campanha/PainelCampanha";
 import { CriacaoCandidato } from "./criacao/CriacaoCandidato";
+import { TelaEleicao } from "./eleicao/TelaEleicao";
 import { FichaCandidato } from "./criacao/FichaCandidato";
 
 export function TelaPartida() {
@@ -64,6 +65,14 @@ export function TelaPartida() {
       )}
       {partida.etapa === "campanha" && partida.campanha && (
         <PainelCampanha partida={partida} campanha={partida.campanha} candidato={candidato} />
+      )}
+      {partida.etapa === "eleicao" && partida.campanha && partida.eleicao && (
+        <TelaEleicao
+          partida={partida}
+          eleicao={partida.eleicao}
+          campanha={partida.campanha}
+          candidato={candidato}
+        />
       )}
     </>
   );

@@ -124,14 +124,18 @@ export type ViceSugerido = {
   efeito: Partial<Atributos>;
 };
 
-// Pessoas fictícias. O bônus é somado aos atributos da chapa.
+// Políticos reais, com cargo e partido conferidos em novembro de 2026.
+// O perfil traz só fatos públicos. O bônus é uma estimativa do jogo, somada aos atributos da chapa.
 export const VICES: ViceSugerido[] = [
-  { id: "clarice", nome: "Clarice Antunes Moura", uf: "CE", sigla: "PSB", perfil: "Ex-prefeita com boa avaliação no Nordeste.", efeito: { reconhecimento: 5, gestao: 5 } },
-  { id: "otavio", nome: "Otávio Lemos Barreto", uf: "MG", sigla: "MDB", perfil: "Negociador experiente e bem relacionado no Congresso.", efeito: { articulacao: 10 } },
-  { id: "joana", nome: "Joana Tavares Pinheiro", uf: "SP", sigla: "NOVO", perfil: "Economista respeitada pelo mercado.", efeito: { credibilidade: 10 } },
-  { id: "renato", nome: "Renato Quintela Rocha", uf: "PR", sigla: "PP", perfil: "Ex-governador popular entre o eleitorado do Sul.", efeito: { reconhecimento: 10 } },
-  { id: "iara", nome: "Iara Figueiredo Sales", uf: "PA", sigla: "REDE", perfil: "Liderança ambiental com projeção internacional.", efeito: { credibilidade: 5, reconhecimento: 5 } },
-  { id: "caio", nome: "Caio Medeiros Albuquerque", uf: "PE", sigla: "PT", perfil: "Sindicalista com forte presença nas bases.", efeito: { articulacao: 5, reconhecimento: 5 } },
+  { id: "alckmin", nome: "Geraldo Alckmin", uf: "SP", sigla: "PSB", perfil: "Vice-presidente da República.", efeito: { credibilidade: 5, articulacao: 5 } },
+  { id: "raquel", nome: "Raquel Lyra", uf: "PE", sigla: "PSD", perfil: "Eleita em 2026 para o governo de Pernambuco.", efeito: { reconhecimento: 5, gestao: 5 } },
+  { id: "elmano", nome: "Elmano de Freitas", uf: "CE", sigla: "PT", perfil: "Eleito em 2026 para o governo do Ceará.", efeito: { reconhecimento: 5, gestao: 5 } },
+  { id: "jeronimo", nome: "Jerônimo Rodrigues", uf: "BA", sigla: "PT", perfil: "Eleito em 2026 para o governo da Bahia.", efeito: { reconhecimento: 5, gestao: 5 } },
+  { id: "cleitinho", nome: "Cleitinho Azevedo", uf: "MG", sigla: "Republicanos", perfil: "Eleito em 2026 para o governo de Minas Gerais.", efeito: { reconhecimento: 10 } },
+  { id: "celina", nome: "Celina Leão", uf: "DF", sigla: "PP", perfil: "Eleita em 2026 para o governo do Distrito Federal.", efeito: { articulacao: 5, gestao: 5 } },
+  { id: "vilela", nome: "Daniel Vilela", uf: "GO", sigla: "MDB", perfil: "Eleito em 2026 para o governo de Goiás.", efeito: { articulacao: 10 } },
+  { id: "riedel", nome: "Eduardo Riedel", uf: "MS", sigla: "PP", perfil: "Eleito em 2026 para o governo de Mato Grosso do Sul.", efeito: { gestao: 10 } },
+  { id: "jorginho", nome: "Jorginho Mello", uf: "SC", sigla: "PL", perfil: "Eleito em 2026 para o governo de Santa Catarina.", efeito: { reconhecimento: 5, gestao: 5 } },
 ];
 
 export type Candidato = {

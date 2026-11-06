@@ -21,6 +21,8 @@ A ideia é construir um jogo de estratégia política profundo, realista, intera
 
 O cenário de 2030 será uma simulação: não vamos presumir candidatos ou resultados eleitorais que ainda não são conhecidos.
 
+Decisão posterior do dono do projeto: partidos, adversários e vices usam nomes reais, sempre como cenário hipotético e com aviso de simulação.
+
 ## 2. Plataformas
 
 Queremos disponibilizar o jogo em três formatos:

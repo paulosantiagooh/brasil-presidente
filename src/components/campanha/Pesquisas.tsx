@@ -157,7 +157,7 @@ export function Pesquisas({ campanha, nomes }: { campanha: Campanha; nomes: Disp
         </ul>
         <p className="ajuda">
           Indecisos, brancos e nulos: {pesquisa.indecisos}%. Margem de erro: 2 pontos. Pesquisa
-          simulada pelo jogo.
+          inventada pelo jogo: não é uma pesquisa real nem uma previsão.
         </p>
       </section>
 

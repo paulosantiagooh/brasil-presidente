@@ -282,7 +282,8 @@ export function PassoVice({ c, mudar }: Props) {
   return (
     <div className="formulario">
       <p className="ajuda">
-        Quem está na lista é fictício. Vice de outro partido forma uma aliança na chapa.
+        Nomes reais em um cenário hipotético: nenhuma dessas pessoas participa do jogo nem aprovou esta
+        simulação. Vice de outro partido forma uma aliança na chapa.
       </p>
       <fieldset className="grade-cartoes">
         <legend className="rotulo">Vice-presidência</legend>

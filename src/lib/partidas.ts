@@ -4,6 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { criarCampanha, type Campanha } from "./campanha";
 import { CANDIDATO_VAZIO, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
+import { iniciarEleicao, type Eleicao } from "./eleicao";
 import { criarLoja } from "./loja";
 
 export type Partida = {
@@ -12,9 +13,10 @@ export type Partida = {
   nome: string;
   cenario: 2030;
   dificuldade: Dificuldade;
-  etapa: "criacao-candidato" | "campanha";
+  etapa: "criacao-candidato" | "campanha" | "eleicao";
   candidato?: Candidato;
   campanha?: Campanha;
+  eleicao?: Eleicao;
   criadaEm: number;
   atualizadaEm: number;
 };
@@ -89,6 +91,16 @@ export function iniciarCampanha(id: string) {
 
 export function atualizarCampanha(id: string, mudar: (campanha: Campanha) => Campanha) {
   mudarPartida(id, (p) => (p.campanha ? { campanha: mudar(p.campanha) } : {}));
+}
+
+export function irAsUrnas(id: string) {
+  mudarPartida(id, (p) =>
+    p.campanha ? { etapa: "eleicao", eleicao: iniciarEleicao(p.campanha) } : {},
+  );
+}
+
+export function atualizarEleicao(id: string, mudar: (eleicao: Eleicao) => Eleicao) {
+  mudarPartida(id, (p) => (p.eleicao ? { eleicao: mudar(p.eleicao) } : {}));
 }
 
 export function apagarPartida(id: string) {

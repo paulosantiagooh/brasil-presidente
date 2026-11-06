@@ -28,23 +28,30 @@ export type Rival = {
   forca: number;
 };
 
-// Adversários fictícios: o jogo não presume quem serão os candidatos reais de 2030.
+// Políticos reais em um cenário hipotético, com partido conferido em novembro de 2026.
+// Posição e força são estimativas do jogo. Nunca invente crime, escândalo ou fala para eles.
+// Lula (dois mandatos seguidos) e Jair Bolsonaro (inelegível) ficam fora da disputa de 2030.
 const RIVAIS_POR_BLOCO: Rival[][] = [
   [
-    { nome: "Beatriz Monteiro Lage", sigla: "PT", numero: 13, uf: "RJ", economia: 24, costumes: 30, forca: 21 },
-    { nome: "Daniel Ferraz Coutinho", sigla: "PSB", numero: 40, uf: "PE", economia: 34, costumes: 34, forca: 15 },
-    { nome: "Lúcia Carvalhal Dias", sigla: "PSOL", numero: 50, uf: "SP", economia: 12, costumes: 12, forca: 13 },
+    { nome: "Fernando Haddad", sigla: "PT", numero: 13, uf: "SP", economia: 30, costumes: 28, forca: 20 },
+    { nome: "Camilo Santana", sigla: "PT", numero: 13, uf: "CE", economia: 32, costumes: 38, forca: 16 },
+    { nome: "Rafael Fonteles", sigla: "PT", numero: 13, uf: "PI", economia: 33, costumes: 38, forca: 13 },
+    { nome: "Guilherme Boulos", sigla: "PSOL", numero: 50, uf: "SP", economia: 12, costumes: 14, forca: 14 },
+    { nome: "Tabata Amaral", sigla: "PSB", numero: 40, uf: "SP", economia: 36, costumes: 28, forca: 12 },
   ],
   [
-    { nome: "Elisa Prates Guimarães", sigla: "MDB", numero: 15, uf: "MG", economia: 54, costumes: 54, forca: 15 },
-    { nome: "Augusto Serrano Vilela", sigla: "PSD", numero: 55, uf: "GO", economia: 58, costumes: 56, forca: 17 },
-    { nome: "Sandra Campelo Rios", sigla: "PSDB", numero: 45, uf: "SP", economia: 62, costumes: 46, forca: 13 },
+    { nome: "Eduardo Paes", sigla: "PSD", numero: 55, uf: "RJ", economia: 52, costumes: 42, forca: 15 },
+    { nome: "Raquel Lyra", sigla: "PSD", numero: 55, uf: "PE", economia: 50, costumes: 48, forca: 12 },
+    { nome: "Daniel Vilela", sigla: "MDB", numero: 15, uf: "GO", economia: 58, costumes: 62, forca: 10 },
   ],
   [
-    { nome: "Marcos Teixeira Bueno", sigla: "PL", numero: 22, uf: "SC", economia: 72, costumes: 84, forca: 21 },
-    { nome: "Fábio Rezende Nunes", sigla: "UNIÃO", numero: 44, uf: "BA", economia: 66, costumes: 66, forca: 15 },
-    { nome: "Hugo Sampaio Arantes", sigla: "NOVO", numero: 30, uf: "RS", economia: 90, costumes: 58, forca: 12 },
-    { nome: "Tereza Lacerda Pontes", sigla: "Republicanos", numero: 10, uf: "RJ", economia: 66, costumes: 80, forca: 14 },
+    { nome: "Tarcísio de Freitas", sigla: "Republicanos", numero: 10, uf: "SP", economia: 72, costumes: 75, forca: 23 },
+    { nome: "Michelle Bolsonaro", sigla: "PL", numero: 22, uf: "DF", economia: 68, costumes: 90, forca: 20 },
+    { nome: "Flávio Bolsonaro", sigla: "PL", numero: 22, uf: "RJ", economia: 70, costumes: 85, forca: 20 },
+    { nome: "Sérgio Moro", sigla: "PL", numero: 22, uf: "PR", economia: 68, costumes: 68, forca: 14 },
+    { nome: "Ronaldo Caiado", sigla: "PSD", numero: 55, uf: "GO", economia: 70, costumes: 80, forca: 12 },
+    { nome: "Renan Santos", sigla: "MISSÃO", numero: 14, uf: "SP", economia: 85, costumes: 60, forca: 11 },
+    { nome: "Romeu Zema", sigla: "NOVO", numero: 30, uf: "MG", economia: 85, costumes: 62, forca: 10 },
   ],
 ];
 
@@ -209,15 +216,23 @@ function fazerPesquisa(c: Campanha): Pesquisa {
   };
 }
 
+// Uma candidatura por partido, sem repetir os partidos da chapa do jogador.
 function escolherRivais(c: Campanha, candidato: Candidato) {
-  const proibidos = [
+  const ocupados = new Set([
     partidoDoCandidato(candidato)?.sigla,
     VICES.find((v) => v.id === candidato.viceId)?.sigla,
-  ];
-  const blocos = RIVAIS_POR_BLOCO.map((bloco) => bloco.filter((r) => !proibidos.includes(r.sigla)));
-  const escolhidos = blocos.map((bloco) => escolherUm(c, bloco));
-  const sobra = blocos.flat().filter((r) => !escolhidos.includes(r));
-  return [...escolhidos, escolherUm(c, sobra)];
+  ]);
+  const escolhidos: Rival[] = [];
+  const escolher = (opcoes: Rival[]) => {
+    const livres = opcoes.filter((r) => !ocupados.has(r.sigla));
+    if (livres.length === 0) return;
+    const rival = escolherUm(c, livres);
+    escolhidos.push(rival);
+    ocupados.add(rival.sigla);
+  };
+  RIVAIS_POR_BLOCO.forEach(escolher);
+  while (escolhidos.length < 4) escolher(RIVAIS_POR_BLOCO.flat());
+  return escolhidos;
 }
 
 const FORCA_DIFICULDADE: Record<Dificuldade, number> = { facil: 1.15, media: 1, dificil: 0.85 };
@@ -553,13 +568,13 @@ function sortearEvento(c: Campanha): Evento {
       aplicar: (x) => aplicarEfeito(x, { popularidade: 3 }),
     },
     {
-      titulo: `Escândalo atinge ${nomeRival}`,
-      texto: "A campanha adversária perde apoio em todo o país.",
+      titulo: `Campanha de ${nomeRival} perde fôlego`,
+      texto: "Na simulação, a candidatura adversária recua nas pesquisas em todo o país.",
       aplicar: (x) => mudarVotoNacional(x, rival, -1.4),
     },
     {
-      titulo: `${nomeRival} ganha apoio de peso`,
-      texto: "Governadores e prefeitos anunciam adesão à campanha adversária.",
+      titulo: `Campanha de ${nomeRival} ganha fôlego`,
+      texto: "Na simulação, a candidatura adversária avança nas pesquisas em todo o país.",
       aplicar: (x) => mudarVotoNacional(x, rival, 0.9),
     },
     {

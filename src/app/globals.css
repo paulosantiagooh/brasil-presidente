@@ -1486,10 +1486,63 @@ label.botao:has(+ .arquivo:focus-visible) {
   text-align: left;
 }
 
+.tela:has(.apuracao) {
+  width: min(100%, 64rem);
+}
+
+.apuracao > .barra {
+  margin-top: 0.75rem;
+}
+
+.apuracao-corpo,
+.resultado-colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.25rem;
+}
+
+.apuracao .mapa-ufs {
+  max-height: 26rem;
+}
+
+.uf-apuracao {
+  stroke: var(--fundo);
+  stroke-width: 1.2;
+  transition: fill 0.3s;
+}
+
+.resultado-turno {
+  margin-top: 0.5rem;
+}
+
+.resultado-turno .placar dd {
+  font-size: 1.7rem;
+}
+
+.barras-candidatos .dado {
+  font-size: 0.72rem;
+}
+
+.aviso-simulacao {
+  margin-top: 1rem;
+}
+
+.espaco-topo {
+  margin-top: 1.25rem;
+}
+
+.bloco > .botao {
+  justify-self: start;
+}
+
 @media (max-width: 900px) {
   .agenda,
   .mapa-eleitoral,
-  .pesquisas {
+  .pesquisas,
+  .apuracao-corpo,
+  .resultado-colunas {
     grid-template-columns: minmax(0, 1fr);
   }
 }

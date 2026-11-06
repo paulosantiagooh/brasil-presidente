@@ -40,7 +40,8 @@ export default function Inicio() {
             ))}
           </dl>
           <p className="aviso">
-            Simulação fictícia. Candidatos e resultados de 2030 não são previstos pelo jogo.
+            Simulação fictícia. Políticos reais aparecem em um cenário hipotético: ações, pesquisas
+            e resultados são inventados pelo jogo e não preveem 2030.
           </p>
         </section>
       </div>

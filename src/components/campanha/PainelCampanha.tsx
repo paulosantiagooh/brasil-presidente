@@ -8,7 +8,7 @@ import {
   type Campanha,
 } from "@/lib/campanha";
 import { partidoDoCandidato, type Candidato } from "@/lib/candidato";
-import { atualizarCampanha, type Partida } from "@/lib/partidas";
+import { atualizarCampanha, irAsUrnas, type Partida } from "@/lib/partidas";
 import { Agenda } from "./Agenda";
 import { TelaBoletim, ListaBoletins } from "./Boletins";
 import { TelaDebate } from "./Debate";
@@ -107,9 +107,16 @@ export function PainelCampanha({ partida, campanha, candidato }: Props) {
           <div className="bloco">
             <p className="rotulo">A campanha terminou</p>
             <p className="ajuda">
-              As cinco semanas acabaram. A votação do primeiro turno é a próxima parte em construção, e
-              o jogo continua daqui quando ela estiver pronta.
+              As cinco semanas acabaram. O resultado pode ser diferente da última pesquisa: a decisão
+              dos indecisos e o comparecimento só aparecem nas urnas.
             </p>
+            <button
+              type="button"
+              className="botao botao-destaque"
+              onClick={() => irAsUrnas(partida.id)}
+            >
+              Ir às urnas
+            </button>
           </div>
         ) : (
           <Agenda
