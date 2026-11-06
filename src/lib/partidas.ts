@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
+import { criarCampanha, type Campanha } from "./campanha";
 import { CANDIDATO_VAZIO, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
 import { criarLoja } from "./loja";
@@ -13,6 +14,7 @@ export type Partida = {
   dificuldade: Dificuldade;
   etapa: "criacao-candidato" | "campanha";
   candidato?: Candidato;
+  campanha?: Campanha;
   criadaEm: number;
   atualizadaEm: number;
 };
@@ -77,6 +79,16 @@ export function atualizarCandidato(id: string, mudanca: Partial<Candidato>) {
 
 export function confirmarCandidatura(id: string) {
   mudarPartida(id, () => ({ etapa: "campanha" }));
+}
+
+export function iniciarCampanha(id: string) {
+  mudarPartida(id, (p) => ({
+    campanha: criarCampanha(p.id, candidatoDaPartida(p), p.dificuldade),
+  }));
+}
+
+export function atualizarCampanha(id: string, mudar: (campanha: Campanha) => Campanha) {
+  mudarPartida(id, (p) => (p.campanha ? { campanha: mudar(p.campanha) } : {}));
 }
 
 export function apagarPartida(id: string) {

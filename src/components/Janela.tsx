@@ -25,7 +25,10 @@ export function Janela({ aberta, titulo, aoFechar, children }: Props) {
       ref={referencia}
       className="janela"
       aria-labelledby={idTitulo}
-      onClose={aoFechar}
+      onClose={() => {
+        // O aviso de fechamento chega depois: ignora se a janela já foi reaberta.
+        if (!referencia.current?.open) aoFechar();
+      }}
       onClick={(evento) => {
         if (evento.target === referencia.current) aoFechar();
       }}

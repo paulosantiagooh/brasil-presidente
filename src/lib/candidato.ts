@@ -17,22 +17,46 @@ export type Partido = {
   costumes: number;
 };
 
-// Partidos fictícios: os reais podem mudar até 2030, e o jogo não presume esse cenário.
+// Siglas, nomes e números de urna da lista definida pelo dono do projeto.
+// Tamanho e posição (economia: 0 = Estado, 100 = mercado; costumes: 0 = progressista,
+// 100 = conservador) são estimativas do jogo, não dados oficiais.
 export const PARTIDOS: Partido[] = [
-  { sigla: "FPT", nome: "Frente Popular do Trabalho", numero: 21, tamanho: "grande", economia: 18, costumes: 25 },
-  { sigla: "ASD", nome: "Aliança Social-Democrata", numero: 31, tamanho: "medio", economia: 38, costumes: 38 },
-  { sigla: "CDM", nome: "Centro Democrático Municipalista", numero: 41, tamanho: "grande", economia: 50, costumes: 52 },
-  { sigla: "RL", nome: "Renovação Liberal", numero: 34, tamanho: "pequeno", economia: 82, costumes: 45 },
-  { sigla: "PCN", nome: "Partido Conservador Nacional", numero: 61, tamanho: "grande", economia: 68, costumes: 82 },
-  { sigla: "MCD", nome: "Movimento Cristão Democrático", numero: 72, tamanho: "medio", economia: 55, costumes: 75 },
-  { sigla: "VF", nome: "Verde Futuro", numero: 84, tamanho: "pequeno", economia: 35, costumes: 18 },
-  { sigla: "SN", nome: "Soberania Nacional", numero: 94, tamanho: "pequeno", economia: 38, costumes: 70 },
+  { sigla: "Republicanos", nome: "Republicanos", numero: 10, tamanho: "grande", economia: 65, costumes: 80 },
+  { sigla: "PP", nome: "Progressistas", numero: 11, tamanho: "grande", economia: 65, costumes: 70 },
+  { sigla: "PDT", nome: "Partido Democrático Trabalhista", numero: 12, tamanho: "pequeno", economia: 30, costumes: 40 },
+  { sigla: "PT", nome: "Partido dos Trabalhadores", numero: 13, tamanho: "grande", economia: 22, costumes: 28 },
+  { sigla: "MISSÃO", nome: "Partido Missão", numero: 14, tamanho: "pequeno", economia: 88, costumes: 65 },
+  { sigla: "MDB", nome: "Movimento Democrático Brasileiro", numero: 15, tamanho: "medio", economia: 55, costumes: 55 },
+  { sigla: "PSTU", nome: "Partido Socialista dos Trabalhadores Unificado", numero: 16, tamanho: "pequeno", economia: 3, costumes: 15 },
+  { sigla: "REDE", nome: "Rede Sustentabilidade", numero: 18, tamanho: "pequeno", economia: 28, costumes: 18 },
+  { sigla: "PODE", nome: "Podemos", numero: 20, tamanho: "medio", economia: 58, costumes: 58 },
+  { sigla: "PCB", nome: "Partido Comunista Brasileiro", numero: 21, tamanho: "pequeno", economia: 5, costumes: 18 },
+  { sigla: "PL", nome: "Partido Liberal", numero: 22, tamanho: "grande", economia: 72, costumes: 85 },
+  { sigla: "Cidadania", nome: "Cidadania", numero: 23, tamanho: "pequeno", economia: 48, costumes: 35 },
+  { sigla: "PRD", nome: "Partido Renovação Democrática", numero: 25, tamanho: "pequeno", economia: 60, costumes: 68 },
+  { sigla: "DC", nome: "Democracia Cristã", numero: 27, tamanho: "pequeno", economia: 55, costumes: 78 },
+  { sigla: "PRTB", nome: "Partido Renovador Trabalhista Brasileiro", numero: 28, tamanho: "pequeno", economia: 62, costumes: 80 },
+  { sigla: "PCO", nome: "Partido da Causa Operária", numero: 29, tamanho: "pequeno", economia: 5, costumes: 35 },
+  { sigla: "NOVO", nome: "Partido Novo", numero: 30, tamanho: "medio", economia: 92, costumes: 58 },
+  { sigla: "MOBILIZA", nome: "Mobilização Nacional", numero: 33, tamanho: "pequeno", economia: 50, costumes: 60 },
+  { sigla: "DEMOCRATA", nome: "Democrata", numero: 35, tamanho: "pequeno", economia: 50, costumes: 62 },
+  { sigla: "Agir", nome: "Agir", numero: 36, tamanho: "pequeno", economia: 52, costumes: 62 },
+  { sigla: "PSB", nome: "Partido Socialista Brasileiro", numero: 40, tamanho: "medio", economia: 35, costumes: 32 },
+  { sigla: "PV", nome: "Partido Verde", numero: 43, tamanho: "pequeno", economia: 30, costumes: 15 },
+  { sigla: "UNIÃO", nome: "União Brasil", numero: 44, tamanho: "grande", economia: 65, costumes: 65 },
+  { sigla: "PSDB", nome: "Partido da Social Democracia Brasileira", numero: 45, tamanho: "medio", economia: 62, costumes: 45 },
+  { sigla: "PSOL", nome: "Partido Socialismo e Liberdade", numero: 50, tamanho: "medio", economia: 10, costumes: 10 },
+  { sigla: "PSD", nome: "Partido Social Democrático", numero: 55, tamanho: "grande", economia: 58, costumes: 55 },
+  { sigla: "PCdoB", nome: "Partido Comunista do Brasil", numero: 65, tamanho: "medio", economia: 15, costumes: 25 },
+  { sigla: "Avante", nome: "Avante", numero: 70, tamanho: "pequeno", economia: 48, costumes: 55 },
+  { sigla: "Solidariedade", nome: "Solidariedade", numero: 77, tamanho: "pequeno", economia: 45, costumes: 55 },
+  { sigla: "UP", nome: "Unidade Popular", numero: 80, tamanho: "pequeno", economia: 5, costumes: 15 },
 ];
 
 export const NOME_TAMANHO: Record<Tamanho, string> = {
-  grande: "Bancada grande",
-  medio: "Bancada média",
-  pequeno: "Bancada pequena",
+  grande: "Partido grande",
+  medio: "Partido médio",
+  pequeno: "Partido pequeno",
   novo: "Partido novo",
 };
 
@@ -102,12 +126,12 @@ export type ViceSugerido = {
 
 // Pessoas fictícias. O bônus é somado aos atributos da chapa.
 export const VICES: ViceSugerido[] = [
-  { id: "clarice", nome: "Clarice Antunes Moura", uf: "CE", sigla: "ASD", perfil: "Ex-prefeita com boa avaliação no Nordeste.", efeito: { reconhecimento: 5, gestao: 5 } },
-  { id: "otavio", nome: "Otávio Lemos Barreto", uf: "MG", sigla: "CDM", perfil: "Negociador experiente e bem relacionado no Congresso.", efeito: { articulacao: 10 } },
-  { id: "joana", nome: "Joana Tavares Pinheiro", uf: "SP", sigla: "RL", perfil: "Economista respeitada pelo mercado.", efeito: { credibilidade: 10 } },
-  { id: "renato", nome: "Renato Quintela Rocha", uf: "PR", sigla: "PCN", perfil: "Ex-governador popular entre o eleitorado do Sul.", efeito: { reconhecimento: 10 } },
-  { id: "iara", nome: "Iara Figueiredo Sales", uf: "PA", sigla: "VF", perfil: "Liderança ambiental com projeção internacional.", efeito: { credibilidade: 5, reconhecimento: 5 } },
-  { id: "caio", nome: "Caio Medeiros Albuquerque", uf: "PE", sigla: "FPT", perfil: "Sindicalista com forte presença nas bases.", efeito: { articulacao: 5, reconhecimento: 5 } },
+  { id: "clarice", nome: "Clarice Antunes Moura", uf: "CE", sigla: "PSB", perfil: "Ex-prefeita com boa avaliação no Nordeste.", efeito: { reconhecimento: 5, gestao: 5 } },
+  { id: "otavio", nome: "Otávio Lemos Barreto", uf: "MG", sigla: "MDB", perfil: "Negociador experiente e bem relacionado no Congresso.", efeito: { articulacao: 10 } },
+  { id: "joana", nome: "Joana Tavares Pinheiro", uf: "SP", sigla: "NOVO", perfil: "Economista respeitada pelo mercado.", efeito: { credibilidade: 10 } },
+  { id: "renato", nome: "Renato Quintela Rocha", uf: "PR", sigla: "PP", perfil: "Ex-governador popular entre o eleitorado do Sul.", efeito: { reconhecimento: 10 } },
+  { id: "iara", nome: "Iara Figueiredo Sales", uf: "PA", sigla: "REDE", perfil: "Liderança ambiental com projeção internacional.", efeito: { credibilidade: 5, reconhecimento: 5 } },
+  { id: "caio", nome: "Caio Medeiros Albuquerque", uf: "PE", sigla: "PT", perfil: "Sindicalista com forte presença nas bases.", efeito: { articulacao: 5, reconhecimento: 5 } },
 ];
 
 export type Candidato = {
@@ -245,13 +269,15 @@ export function errosDoPasso(c: Candidato, passo: number): string[] {
     if (!c.foto) erros.push("Envie a fotografia do candidato.");
   }
   if (passo === 1) {
-    if (!c.partidoProprio && !c.partidoSigla) erros.push("Escolha um partido ou crie o seu.");
+    if (!c.partidoProprio && !partidoDoCandidato(c)) erros.push("Escolha um partido ou crie o seu.");
     if (c.partidoProprio) {
       const sigla = c.novoPartidoSigla.trim().toUpperCase();
       const numero = Number(c.novoPartidoNumero);
       if (c.novoPartidoNome.trim().length < 3) erros.push("Escreva o nome do partido.");
       if (!/^[A-ZÀ-Ú]{2,8}$/.test(sigla)) erros.push("A sigla precisa ter de 2 a 8 letras.");
-      if (PARTIDOS.some((p) => p.sigla === sigla)) erros.push("Essa sigla já é de outro partido.");
+      if (PARTIDOS.some((p) => p.sigla.toUpperCase() === sigla)) {
+        erros.push("Essa sigla já é de outro partido.");
+      }
       if (!Number.isInteger(numero) || numero < 10 || numero > 99) {
         erros.push("O número do partido precisa ter 2 algarismos.");
       }

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { NOME_DIFICULDADE } from "@/lib/config";
-import { candidatoDaPartida, formatarData, usePartidas } from "@/lib/partidas";
+import { candidatoDaPartida, formatarData, iniciarCampanha, usePartidas } from "@/lib/partidas";
+import { PainelCampanha } from "./campanha/PainelCampanha";
 import { CriacaoCandidato } from "./criacao/CriacaoCandidato";
 import { FichaCandidato } from "./criacao/FichaCandidato";
 
@@ -24,6 +25,8 @@ export function TelaPartida() {
     );
   }
 
+  const candidato = candidatoDaPartida(partida);
+
   return (
     <>
       <header className="cabecalho-tela">
@@ -36,20 +39,31 @@ export function TelaPartida() {
         </p>
       </header>
 
-      {partida.etapa === "criacao-candidato" ? (
-        <CriacaoCandidato partida={partida} />
-      ) : (
+      {partida.etapa === "criacao-candidato" && <CriacaoCandidato partida={partida} />}
+      {partida.etapa === "campanha" && !partida.campanha && (
         <section aria-labelledby="titulo-registro">
           <p className="sobretitulo">Eleição {partida.cenario}</p>
           <h1 id="titulo-registro" className="titulo-tela">
             Candidatura registrada
           </h1>
           <p className="texto-tela">
-            A sua chapa está pronta e salva. A campanha eleitoral é a próxima parte em construção, e
-            o jogo continua daqui quando ela estiver pronta.
+            A sua chapa está pronta. A campanha dura cinco semanas, com quatro ações por semana.
           </p>
-          <FichaCandidato c={candidatoDaPartida(partida)} />
+          <FichaCandidato c={candidato} />
+          <footer className="rodape-passo">
+            <span />
+            <button
+              type="button"
+              className="botao botao-destaque"
+              onClick={() => iniciarCampanha(partida.id)}
+            >
+              Começar a campanha
+            </button>
+          </footer>
         </section>
+      )}
+      {partida.etapa === "campanha" && partida.campanha && (
+        <PainelCampanha partida={partida} campanha={partida.campanha} candidato={candidato} />
       )}
     </>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CARGOS,
   distanciaDoPartido,
@@ -72,30 +73,37 @@ export function PassoIdentidade({ c, mudar }: Props) {
   );
 }
 
+function semAcento(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
 export function PassoPartido({ c, mudar }: Props) {
+  const [busca, setBusca] = useState("");
+  const termo = semAcento(busca.trim());
+  const partidos = PARTIDOS.filter((p) =>
+    semAcento(`${p.numero} ${p.sigla} ${p.nome}`).includes(termo),
+  );
+
   return (
     <div className="formulario">
       <p className="ajuda">
-        Os partidos do jogo são fictícios. Bancada grande ajuda na articulação, e partido novo começa
-        sem estrutura, mas com discurso de renovação.
+        Partido grande ajuda na articulação. Partido novo começa sem estrutura, mas com discurso de
+        renovação. A posição de cada partido é uma estimativa do jogo.
       </p>
-      <fieldset className="grade-cartoes">
+      <Campo rotulo="Procurar partido">
+        <input
+          type="search"
+          value={busca}
+          placeholder="Sigla, nome ou número"
+          autoComplete="off"
+          onChange={(e) => setBusca(e.target.value)}
+        />
+      </Campo>
+      <fieldset className="grade-cartoes grade-compacta">
         <legend className="rotulo">Partido</legend>
-        {PARTIDOS.map((partido) => (
-          <Cartao
-            key={partido.sigla}
-            nome="partido"
-            marcado={!c.partidoProprio && c.partidoSigla === partido.sigla}
-            aoMarcar={() => mudar({ partidoSigla: partido.sigla, partidoProprio: false })}
-          >
-            <span className="cartao-topo">
-              <strong>{partido.sigla}</strong>
-              <span className="dado">{partido.numero}</span>
-            </span>
-            <span>{partido.nome}</span>
-            <span className="dado">{NOME_TAMANHO[partido.tamanho]}</span>
-          </Cartao>
-        ))}
         <Cartao
           nome="partido"
           marcado={c.partidoProprio}
@@ -107,6 +115,21 @@ export function PassoPartido({ c, mudar }: Props) {
           <span>Criar o meu partido</span>
           <span className="dado">{NOME_TAMANHO.novo}</span>
         </Cartao>
+        {partidos.map((partido) => (
+          <Cartao
+            key={partido.sigla}
+            nome="partido"
+            marcado={!c.partidoProprio && c.partidoSigla === partido.sigla}
+            aoMarcar={() => mudar({ partidoSigla: partido.sigla, partidoProprio: false })}
+          >
+            <span className="cartao-topo">
+              <strong>{partido.sigla}</strong>
+              <span className="numero-urna">{partido.numero}</span>
+            </span>
+            <span>{partido.nome}</span>
+            <span className="dado">{NOME_TAMANHO[partido.tamanho]}</span>
+          </Cartao>
+        ))}
       </fieldset>
       {c.partidoProprio && (
         <div className="bloco">
