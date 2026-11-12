@@ -8,7 +8,7 @@ import type { Dificuldade } from "./config";
 import { iniciarEleicao, type Eleicao } from "./eleicao";
 import { criarGoverno, pessoaPorId, type Governo } from "./governo";
 import { criarLoja } from "./loja";
-import { criarDrama, criarMandato, limparRepetidos, registrarReeleicao, resolverNomeacao, type Mandato } from "./mandato";
+import { criarDrama, criarMandato, limparRepetidos, registrarDecisao, registrarReeleicao, resolverNomeacao, type Mandato } from "./mandato";
 
 export type Partida = {
   versao: 1;
@@ -187,7 +187,7 @@ export function concluirReeleicao(id: string) {
 export function atualizarMandato(id: string, mudar: (mandato: Mandato) => Mandato) {
   mudarPartida(id, (p) => {
     if (!p.mandato || !p.governo) return {};
-    return resolverNomeacao(p.governo, mudar(p.mandato));
+    return resolverNomeacao(p.governo, registrarDecisao(p.mandato, mudar(p.mandato)));
   });
 }
 

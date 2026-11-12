@@ -2682,6 +2682,72 @@ label.botao:has(+ .arquivo:focus-visible) {
   grid-column: 1 / -1;
 }
 
+.aviso-decisao {
+  display: grid;
+  gap: 0.35rem;
+  animation: aviso-entra 0.35s ease-out;
+}
+
+@keyframes aviso-entra {
+  from {
+    transform: translateY(-6px);
+  }
+}
+
+.mudancas-decisao {
+  margin: 0;
+}
+
+.mudancas-decisao li {
+  font-size: 0.82rem;
+}
+
+.motivos {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  background: var(--superficie);
+}
+
+.motivos summary {
+  cursor: pointer;
+  color: var(--amarelo-bandeira);
+  font-weight: 600;
+}
+
+.motivos ul {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.motivo.bom strong {
+  color: var(--turquesa);
+}
+
+.motivo.ruim strong {
+  color: var(--perigo);
+}
+
+.historico-decisoes {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.historico-decisoes > li {
+  display: grid;
+  gap: 0.3rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--linha);
+}
+
+.reacoes-decisao {
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+}
+
 .posse {
   display: grid;
   gap: 0.9rem;

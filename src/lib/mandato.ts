@@ -203,7 +203,7 @@ export type Mandato = {
   vagasReabertas: { id: string; mes: number }[];
   medidas: { id: number; mes: number; titulo: string; descricao: string; instrumento: string; situacao: string }[];
   mps: { mes: number; medidaId: number; titulo: string; economia: number; efeito: Efeito; programaId?: string }[];
-  resumoMes: { mes: number; aprovacao: number; pib: number; ipca: number; desemprego: number } | null;
+  resumoMes: { mes: number; aprovacao: number; pib: number; ipca: number; desemprego: number; motivos?: Motivo[] } | null;
   limite: number;
   cassado: boolean;
   impeachmentMes: number;
@@ -222,7 +222,20 @@ export type Mandato = {
   posses?: number[];
   metasMinistros?: MetaDoMinistro[];
   metasBatidas?: number;
+  decisoes?: Decisao[];
 };
+
+// Cada decisão fica registrada com o que mudou na hora e o que ainda vai chegar.
+export type Decisao = { mes: number; texto: string; mudancas: Record<string, number>; futuro: string | null };
+export type Motivo = { indicador: string; texto: string; valor: number };
+
+export const INDICADORES_DA_DECISAO: { chave: string; nome: string; menor: boolean; casas: number }[] = [
+  { chave: "aprovacao", nome: "Aprovação", menor: false, casas: 1 },
+  { chave: "congresso", nome: "Congresso", menor: false, casas: 1 },
+  { chave: "e.pib", nome: "PIB", menor: false, casas: 2 },
+  { chave: "e.ipca", nome: "Inflação", menor: true, casas: 2 },
+  { chave: "e.desemprego", nome: "Desemprego", menor: true, casas: 2 },
+];
 
 export type Contexto = { governo: Governo; candidato: Candidato };
 
@@ -1219,9 +1232,16 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   }
   m.mps = m.mps.filter((item) => item.mes > m.mes);
 
+  // Motivos do mês: as decisões já registradas e os efeitos que chegaram agora.
+  const motivos: Motivo[] = [];
+  for (const decisao of (m.decisoes ?? []).filter((d) => d.mes === m.mes)) {
+    for (const [indicador, valor] of Object.entries(decisao.mudancas)) motivos.push({ indicador, texto: decisao.texto, valor });
+  }
   for (const item of m.pendentes.filter((p) => p.mes <= m.mes)) {
+    const antes = fotografar(m);
     aplicar(m, item.efeito);
     noticiar(m, item.texto);
+    for (const [indicador, valor] of Object.entries(diferenca(antes, fotografar(m)))) motivos.push({ indicador, texto: item.texto, valor });
   }
   m.pendentes = m.pendentes.filter((p) => p.mes > m.mes);
 
@@ -1248,6 +1268,28 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     ipca: m.economia.ipca - anterior.ipca,
     desemprego: m.economia.desemprego - anterior.desemprego,
   };
+  // O que as decisões não explicam vem da própria economia e do desgaste de governar.
+  const total: Record<string, number> = {
+    aprovacao: m.resumoMes.aprovacao,
+    "e.pib": m.resumoMes.pib,
+    "e.ipca": m.resumoMes.ipca,
+    "e.desemprego": m.resumoMes.desemprego,
+  };
+  const RESTO: Record<string, string> = {
+    aprovacao: "Economia e desgaste natural do governo",
+    "e.pib": "Juros, confiança e investimentos",
+    "e.ipca": "Juros, dólar e demanda",
+    "e.desemprego": "Ritmo da economia",
+  };
+  for (const [indicador, valor] of Object.entries(total)) {
+    const explicado = motivos.filter((mo) => mo.indicador === indicador).reduce((soma, mo) => soma + mo.valor, 0);
+    const resto = valor - explicado;
+    if (Math.abs(resto) >= (indicador === "aprovacao" ? 0.3 : 0.03)) motivos.push({ indicador, texto: RESTO[indicador], valor: resto });
+  }
+  m.resumoMes.motivos = motivos
+    .filter((mo) => mo.indicador in total)
+    .sort((a, b) => Math.abs(b.valor) / (b.indicador === "aprovacao" ? 10 : 1) - Math.abs(a.valor) / (a.indicador === "aprovacao" ? 10 : 1))
+    .slice(0, 5);
 
   if (m.mes >= m.limite) {
     // Crise ainda aberta no último mês: o desfecho é o que estiver na mesa.
@@ -1501,6 +1543,51 @@ export function avancarGolpe(original: Mandato, opcao: number | "recuar"): Manda
     });
   }
   return m;
+}
+
+function fotografar(m: Mandato) {
+  return Object.fromEntries(INDICADORES_DA_DECISAO.map((i) => [i.chave, lerIndicador(m, i.chave)]));
+}
+
+function diferenca(antes: Record<string, number>, depois: Record<string, number>) {
+  return Object.fromEntries(
+    Object.entries(depois)
+      .map(([chave, valor]) => [chave, valor - (antes[chave] ?? valor)] as const)
+      .filter(([chave, valor]) => Math.abs(valor) >= (chave === "aprovacao" || chave === "congresso" ? 0.2 : 0.02)),
+  );
+}
+
+// Chamado depois de toda mudança feita pelo jogador dentro do mesmo mês: o fechamento do mês tem resumo próprio.
+export function registrarDecisao(antes: Mandato, depois: Mandato): Mandato {
+  if (depois.mes !== antes.mes || depois.fase === "fim") return depois;
+  const nova = depois.noticias[0];
+  const velha = antes.noticias[0];
+  if (!nova || (velha && nova.texto === velha.texto && nova.mes === velha.mes)) return depois;
+  const mudancas = diferenca(fotografar(antes), fotografar(depois));
+  let futuro: string | null = null;
+  const novosPendentes = depois.pendentes.filter((p) => !antes.pendentes.some((a) => a.texto === p.texto && a.mes === p.mes));
+  const novosProgramas = (depois.programas ?? []).filter((p) => !(antes.programas ?? []).some((a) => a.id === p.id));
+  if (novosPendentes.length > 0) futuro = `Mais efeitos em cerca de ${Math.min(...novosPendentes.map((p) => p.mes - depois.mes))} meses.`;
+  else if (novosProgramas.length > 0) futuro = `Age todo mês até ${nomeDoMes(novosProgramas[0].fim)}.`;
+  else if ((depois.vetos ?? []).length > (antes.vetos ?? []).length) futuro = "O Congresso analisa o veto em 2 meses.";
+  const decisao: Decisao = { mes: depois.mes, texto: nova.texto, mudancas, futuro };
+  return { ...depois, decisoes: [decisao, ...(depois.decisoes ?? [])].slice(0, 80) };
+}
+
+// Reações simples, só a partir do que mudou.
+export function reacoesDaDecisao(d: Decisao) {
+  const saldo = INDICADORES_DA_DECISAO.reduce((soma, i) => {
+    const valor = d.mudancas[i.chave] ?? 0;
+    const peso = i.chave === "aprovacao" || i.chave === "congresso" ? 0.2 : 3;
+    return soma + (i.menor ? -valor : valor) * peso;
+  }, 0);
+  const aprovacao = d.mudancas.aprovacao ?? 0;
+  const congresso = d.mudancas.congresso ?? 0;
+  return {
+    imprensa: saldo > 0.15 ? "elogia" : saldo < -0.15 ? "critica" : "observa",
+    populacao: aprovacao > 0.2 ? "gostou" : aprovacao < -0.2 ? "reprovou" : "indiferente",
+    partidos: congresso > 0.2 ? "satisfeitos" : congresso < -0.2 ? "irritados" : "neutros",
+  };
 }
 
 export function lerIndicador(m: Mandato, chave: string) {

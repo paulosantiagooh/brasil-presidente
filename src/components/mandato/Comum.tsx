@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { nomeDoMes, type Registro } from "@/lib/mandato";
+import { INDICADORES_DA_DECISAO, nomeDoMes, type Registro } from "@/lib/mandato";
 
 export function numero(valor: number, casas = 1) {
   return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -140,5 +140,25 @@ export function Serie(props: {
         )}
       </div>
     </figure>
+  );
+}
+
+// Pílulas com o que uma decisão mudou: a seta diz se subiu, a cor diz se foi bom.
+export function Mudancas({ mudancas }: { mudancas: Record<string, number> }) {
+  const itens = INDICADORES_DA_DECISAO.filter((i) => mudancas[i.chave] !== undefined);
+  if (itens.length === 0) return null;
+  return (
+    <ul className="mudancas mudancas-decisao">
+      {itens.map((i) => {
+        const valor = mudancas[i.chave];
+        const bom = i.menor ? valor < 0 : valor > 0;
+        return (
+          <li key={i.chave} className={bom ? "mudanca-boa" : "mudanca-ruim"}>
+            {valor > 0 ? "▲" : "▼"} {i.nome} {valor > 0 ? "+" : "−"}
+            {numero(Math.abs(valor), i.chave === "aprovacao" || i.chave === "congresso" ? 1 : 2)}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

@@ -22,6 +22,7 @@ import {
   promessasDoMandato,
   responderCarta,
   responderEvento,
+  INDICADORES_DA_DECISAO,
   responderDataCivica,
   DATAS_CIVICAS,
   resolverMetaPerdida,
@@ -60,7 +61,7 @@ import {
   PainelRelatorios,
   PainelSociedade,
 } from "./Areas";
-import { Barras, numero } from "./Comum";
+import { Barras, Mudancas, numero } from "./Comum";
 import { PASSOS_DO_GOLPE } from "@/lib/poderes";
 import { NOME_DESFECHO } from "@/lib/crises";
 import { GabineteDeCrise, ResultadoDaCrise } from "./GabineteDeCrise";
@@ -947,15 +948,41 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
           {sinal(mandato.resumoMes.desemprego)}
         </p>
       )}
+      {mandato.resumoMes?.motivos && mandato.resumoMes.motivos.length > 0 && (
+        <details className="motivos">
+          <summary>Por que os números mudaram?</summary>
+          <ul>
+            {mandato.resumoMes.motivos.map((motivo, i) => {
+              const indicador = INDICADORES_DA_DECISAO.find((x) => x.chave === motivo.indicador);
+              const bom = indicador?.menor ? motivo.valor < 0 : motivo.valor > 0;
+              return (
+                <li key={i} className={bom ? "motivo bom" : "motivo ruim"}>
+                  <strong>
+                    {motivo.valor > 0 ? "▲" : "▼"} {indicador?.nome} {motivo.valor > 0 ? "+" : "−"}
+                    {numero(Math.abs(motivo.valor), motivo.indicador === "aprovacao" ? 1 : 2)}
+                  </strong>{" "}
+                  {motivo.texto}
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
       {novidade && (
         <p className={novidade.startsWith("Missão perdida") ? "faixa-novidade ruim" : "faixa-novidade"} role="status">
           {novidade}
         </p>
       )}
       {mandato.noticias[0]?.mes === mandato.mes && (
-        <p className="ultima-acao" role="status">
-          {mandato.noticias[0].texto}
-        </p>
+        <div className="ultima-acao aviso-decisao" role="status" key={mandato.noticias[0].texto}>
+          <p>{mandato.noticias[0].texto}</p>
+          {mandato.decisoes?.[0]?.mes === mandato.mes && mandato.decisoes[0].texto === mandato.noticias[0].texto && (
+            <>
+              <Mudancas mudancas={mandato.decisoes[0].mudancas} />
+              {mandato.decisoes[0].futuro && <p className="ajuda">{mandato.decisoes[0].futuro}</p>}
+            </>
+          )}
+        </div>
       )}
 
       <nav className="abas" aria-label="Áreas do governo">

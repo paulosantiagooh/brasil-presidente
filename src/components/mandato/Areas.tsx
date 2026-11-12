@@ -12,6 +12,7 @@ import {
   custoDoOrcamentoDoMandato,
   darMeta,
   executar,
+  reacoesDaDecisao,
   lerIndicador,
   metaCumprida,
   mudarOrcamento,
@@ -59,7 +60,7 @@ import { CenaAnimada } from "../cenas/CenaAnimada";
 import { cenaDoAcontecimento } from "@/lib/cenas";
 import { Congresso3D } from "../congresso/Congresso3D";
 import { Janela } from "../Janela";
-import { Barras, Bloco, numero, Numeros, Serie } from "./Comum";
+import { Barras, Bloco, Mudancas, numero, Numeros, Serie } from "./Comum";
 
 type Props = {
   mandato: Mandato;
@@ -1158,8 +1159,29 @@ export function PainelRelatorios({ mandato }: { mandato: Mandato }) {
   const serie = SERIES[indice];
   const trimestres = mandato.historico.filter((r) => r.mes > 0 && r.mes % 3 === 0).reverse();
 
+  const decisoes = mandato.decisoes ?? [];
   return (
     <div className="areas">
+      <Bloco titulo="Decisões e resultados">
+        {decisoes.length === 0 && <p className="ajuda">As suas decisões aparecem aqui, com o que mudou e a reação de cada lado.</p>}
+        <ul className="historico-decisoes">
+          {decisoes.slice(0, 20).map((d, i) => {
+            const r = reacoesDaDecisao(d);
+            return (
+              <li key={i}>
+                <p>
+                  <span className="dado">{nomeDoMes(d.mes)}</span> {d.texto}
+                </p>
+                <Mudancas mudancas={d.mudancas} />
+                {d.futuro && <p className="ajuda">{d.futuro}</p>}
+                <p className="reacoes-decisao">
+                  Imprensa {r.imprensa} · População {r.populacao} · Partidos {r.partidos}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </Bloco>
       <Bloco titulo="Evolução">
         <label className="campo">
           <span className="rotulo">Indicador</span>
