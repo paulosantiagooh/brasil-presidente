@@ -2545,6 +2545,143 @@ label.botao:has(+ .arquivo:focus-visible) {
   background: var(--amarelo-bandeira);
 }
 
+.placar-voto {
+  position: relative;
+  display: flex;
+  height: 14px;
+  margin: 0.4rem 0;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--linha);
+}
+
+.placar-voto .voto-sim,
+.placar-voto .voto-nao {
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+
+.placar-voto .voto-sim {
+  background: var(--turquesa);
+}
+
+.placar-voto .voto-nao {
+  margin-left: auto;
+  background: var(--perigo);
+}
+
+.voto-linha {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  background: var(--amarelo-bandeira);
+  transform: translateX(-50%);
+}
+
+.numero-sim {
+  color: var(--turquesa);
+}
+
+.numero-nao {
+  color: var(--perigo);
+}
+
+.casas-voto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.chips-partidos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.chip-voto {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-family: var(--fonte-dado), monospace;
+  font-size: 0.75rem;
+  animation: entrar-voto 0.3s ease-out both;
+}
+
+.chip-voto.sim {
+  background: rgb(47 211 124 / 0.18);
+  color: var(--turquesa);
+}
+
+.chip-voto.nao {
+  background: var(--perigo-fundo);
+  color: var(--perigo);
+}
+
+.chip-voto.dividido {
+  background: var(--aviso-fundo);
+  color: var(--aviso);
+}
+
+@keyframes entrar-voto {
+  from {
+    transform: scale(0.8);
+  }
+}
+
+.situacao.aprovado {
+  color: var(--turquesa);
+}
+
+.situacao.rejeitado {
+  color: var(--perigo);
+}
+
+.reacoes-partidos {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.reacao-partido {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-left: 4px solid var(--linha-forte);
+  border-radius: 6px;
+  background: var(--superficie);
+}
+
+.reacao-partido.apoia {
+  border-left-color: var(--turquesa);
+}
+
+.reacao-partido.negocia {
+  border-left-color: var(--aviso);
+}
+
+.reacao-partido.contra {
+  border-left-color: var(--perigo);
+}
+
+.reacao-sigla {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+  align-items: baseline;
+}
+
+.reacao-nome {
+  font-size: 0.85rem;
+}
+
+.reacao-partido .botao {
+  grid-column: 1 / -1;
+}
+
 .posse {
   display: grid;
   gap: 0.9rem;

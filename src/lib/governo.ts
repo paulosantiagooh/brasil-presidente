@@ -412,10 +412,10 @@ export function custoDoOrcamento(g: Governo) {
 type Proposta = { economia: number; camara: number | null; senado: number | null };
 
 // A relação com o Congresso ao longo do mandato soma ou tira chance de apoio em todos os partidos.
-export function votarProposta(original: Governo, c: Candidato, proposta: Proposta, bonus: number) {
+export function votarProposta(original: Governo, c: Candidato, proposta: Proposta, bonus: number, porPartido: Record<string, number> = {}) {
   const g = structuredClone(original);
-  const camara = votarNaCasa(g, c, proposta, "deputados", proposta.camara, bonus);
-  const senado = camara.aprovado ? votarNaCasa(g, c, proposta, "senadores", proposta.senado, bonus) : null;
+  const camara = votarNaCasa(g, c, proposta, "deputados", proposta.camara, bonus, porPartido);
+  const senado = camara.aprovado ? votarNaCasa(g, c, proposta, "senadores", proposta.senado, bonus, porPartido) : null;
   return { semente: g.semente, camara, senado, aprovado: Boolean(senado?.aprovado) };
 }
 
@@ -426,7 +426,7 @@ export function votarIndicacao(original: Governo, c: Candidato, bonus: number) {
   return { semente: g.semente, senado };
 }
 
-function votarNaCasa(g: Governo, c: Candidato, projeto: Proposta, casa: keyof Bancada, necessarios: number | null, bonus = 0): Casa {
+function votarNaCasa(g: Governo, c: Candidato, projeto: Proposta, casa: keyof Bancada, necessarios: number | null, bonus = 0, porPartido: Record<string, number> = {}): Casa {
   const partidos: VotoPartido[] = [];
   let sim = 0;
   let nao = 0;
@@ -434,7 +434,7 @@ function votarNaCasa(g: Governo, c: Candidato, projeto: Proposta, casa: keyof Ba
     if (bancada[casa] === 0) continue;
     const posicao = posicaoDoPartido(sigla, c);
     const afinidade = (1 - Math.abs(posicao.economia - projeto.economia) / 50) * 0.1;
-    const chance = limitar(chanceDoPartido(g, c, sigla) + afinidade + bonus + (sortear(g) - 0.5) * 0.16, 0, 1);
+    const chance = limitar(chanceDoPartido(g, c, sigla) + afinidade + bonus + (porPartido[sigla] ?? 0) + (sortear(g) - 0.5) * 0.16, 0, 1);
     const presentes = Math.round(bancada[casa] * 0.95);
     const favoraveis = Math.round(presentes * chance);
     partidos.push({ sigla, sim: favoraveis, nao: presentes - favoraveis });
@@ -446,16 +446,26 @@ function votarNaCasa(g: Governo, c: Candidato, projeto: Proposta, casa: keyof Ba
 }
 
 // Previsão sem sorteio, usada na negociação antes do plenário.
-export function estimarVotos(g: Governo, c: Candidato, proposta: Proposta, bonus: number) {
-  const contar = (casa: keyof Bancada) =>
-    Math.round(
-      Object.entries(g.bancadas).reduce((soma, [sigla, bancada]) => {
-        const posicao = posicaoDoPartido(sigla, c);
-        const afinidade = (1 - Math.abs(posicao.economia - proposta.economia) / 50) * 0.1;
-        return soma + bancada[casa] * 0.95 * limitar(chanceDoPartido(g, c, sigla) + afinidade + bonus, 0, 1);
-      }, 0),
-    );
+export function estimarVotos(g: Governo, c: Candidato, proposta: Proposta, bonus: number, porPartido: Record<string, number> = {}) {
+  const reacoes = reacoesDosPartidos(g, c, proposta, bonus, porPartido);
+  const contar = (casa: "deputados" | "senadores") => Math.round(reacoes.reduce((soma, r) => soma + r[casa] * 0.95 * r.chance, 0));
   return { deputados: contar("deputados"), senadores: contar("senadores") };
+}
+
+export type Reacao = "apoia" | "negocia" | "contra";
+
+// O que cada bancada pensa da proposta antes do plenário, sem sorteio.
+export function reacoesDosPartidos(g: Governo, c: Candidato, proposta: Proposta, bonus: number, porPartido: Record<string, number> = {}) {
+  return Object.entries(g.bancadas)
+    .filter(([, b]) => b.deputados + b.senadores > 0)
+    .map(([sigla, bancada]) => {
+      const posicao = posicaoDoPartido(sigla, c);
+      const afinidade = (1 - Math.abs(posicao.economia - proposta.economia) / 50) * 0.1;
+      const chance = limitar(chanceDoPartido(g, c, sigla) + afinidade + bonus + (porPartido[sigla] ?? 0), 0, 1);
+      const reacao: Reacao = chance >= 0.62 ? "apoia" : chance >= 0.4 ? "negocia" : "contra";
+      return { sigla, deputados: bancada.deputados, senadores: bancada.senadores, posicao: posicaoDoPartidoNoCongresso(g, c, sigla), chance, reacao };
+    })
+    .sort((a, b) => b.deputados - a.deputados);
 }
 
 export function votarProjeto(original: Governo, c: Candidato): Governo {

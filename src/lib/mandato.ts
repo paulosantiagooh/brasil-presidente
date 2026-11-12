@@ -4,7 +4,7 @@ import type { TipoCena } from "./cenas";
 import { CARTA_RUAS, CARTAS, COMENTARIOS, CONQUISTAS, METAS_BASE, PERSONAGENS, TITULOS_LEGADO, USUARIOS, type Carta } from "./drama";
 import type { Eleicao } from "./eleicao";
 import { dadosDoVice, extremosOpostos, MOTIVO_EXTREMOS } from "./candidato";
-import { AREAS, atributosDe, calcularBalanco, MINISTERIOS, custoDoOrcamento, estimarVotos, ministeriosAtivos, pastasDoPartido, pessoaPorId, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
+import { AREAS, atributosDe, calcularBalanco, MINISTERIOS, custoDoOrcamento, estimarVotos, posicaoDoPartidoNoCongresso, reacoesDosPartidos, ministeriosAtivos, pastasDoPartido, pessoaPorId, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
 import { POLITICOS, semAcento, type Pessoa } from "./pessoas";
 import { noEstado } from "./estados";
 import { CRISES, desfechoDaCrise, NOME_DESFECHO } from "./crises";
@@ -146,7 +146,7 @@ export type PropostaEmVoto = {
   programaId?: string;
 };
 
-export type Concessoes = { emendas: number; cargos: number; texto: number };
+export type Concessoes = { emendas: number; cargos: number; texto: number; lideres?: string[] };
 
 export type ResultadoVoto = { aprovado: boolean; camara: Casa; senado: Casa | null };
 
@@ -573,8 +573,8 @@ function bonusDoCongresso(m: Mandato) {
   return (m.congresso - 50) / 250;
 }
 
-function votar(m: Mandato, c: Contexto, proposta: { economia: number; camara: number | null; senado: number | null }, extra = 0) {
-  const resultado = votarProposta({ ...c.governo, semente: m.semente }, c.candidato, proposta, bonusDoCongresso(m) + extra);
+function votar(m: Mandato, c: Contexto, proposta: { economia: number; camara: number | null; senado: number | null }, extra = 0, porPartido: Record<string, number> = {}) {
+  const resultado = votarProposta({ ...c.governo, semente: m.semente }, c.candidato, proposta, bonusDoCongresso(m) + extra, porPartido);
   m.semente = resultado.semente;
   return resultado;
 }
@@ -717,13 +717,43 @@ function bonusDasConcessoes(c: Concessoes) {
   return c.emendas * 0.03 + c.cargos * 0.03 + c.texto * 0.04;
 }
 
+// Cada líder atendido pessoalmente puxa a bancada dele para o lado do governo.
+export const LIMITE_LIDERES = 3;
+// Oposição cede pouco num acordo; independentes cedem mais.
+const BONUS_DO_LIDER = { base: 0.08, independente: 0.1, oposicao: 0.04 };
+
+function porPartidoDasConcessoes(c: Concessoes, contexto: Contexto): Record<string, number> {
+  return Object.fromEntries(
+    (c.lideres ?? []).map((sigla) => [sigla, BONUS_DO_LIDER[posicaoDoPartidoNoCongresso(contexto.governo, contexto.candidato, sigla)]]),
+  );
+}
+
 export function estimativaDeVotos(m: Mandato, contexto: Contexto) {
   if (m.pendencia?.tipo !== "votacao") return null;
   const { proposta, concessoes } = m.pendencia;
-  return estimarVotos(contexto.governo, contexto.candidato, proposta, bonusDoCongresso(m) + bonusDasConcessoes(concessoes));
+  return estimarVotos(contexto.governo, contexto.candidato, proposta, bonusDoCongresso(m) + bonusDasConcessoes(concessoes), porPartidoDasConcessoes(concessoes, contexto));
 }
 
-export function negociar(original: Mandato, tipo: keyof Concessoes): Mandato {
+export function reacoesAProposta(m: Mandato, contexto: Contexto) {
+  if (m.pendencia?.tipo !== "votacao") return [];
+  const { proposta, concessoes } = m.pendencia;
+  return reacoesDosPartidos(contexto.governo, contexto.candidato, proposta, bonusDoCongresso(m) + bonusDasConcessoes(concessoes), porPartidoDasConcessoes(concessoes, contexto));
+}
+
+export function negociarComLider(original: Mandato, contexto: Contexto, sigla: string): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "votacao" || m.pendencia.resultado) return m;
+  if (extremosOpostos(contexto.candidato.partidoSigla, sigla)) return m;
+  const lideres = m.pendencia.concessoes.lideres ?? [];
+  if (lideres.includes(sigla) || lideres.length >= LIMITE_LIDERES) return m;
+  m.pendencia.concessoes.lideres = [...lideres, sigla];
+  // O acordo com o líder sai em verbas para as bases do partido.
+  aplicar(m, { "e.primario": -0.03, "s.confianca": -0.5 });
+  noticiar(m, `O presidente recebe o líder do ${sigla} no Planalto.`);
+  return m;
+}
+
+export function negociar(original: Mandato, tipo: "emendas" | "cargos" | "texto"): Mandato {
   const m = structuredClone(original);
   if (m.pendencia?.tipo !== "votacao" || m.pendencia.resultado) return m;
   if (m.pendencia.concessoes[tipo] < LIMITE_CONCESSOES) m.pendencia.concessoes[tipo] += 1;
@@ -734,7 +764,7 @@ export function colocarEmVotacao(original: Mandato, contexto: Contexto): Mandato
   const m = structuredClone(original);
   if (m.pendencia?.tipo !== "votacao" || m.pendencia.resultado) return m;
   const { proposta, concessoes } = m.pendencia;
-  const resultado = votar(m, contexto, proposta, bonusDasConcessoes(concessoes));
+  const resultado = votar(m, contexto, proposta, bonusDasConcessoes(concessoes), porPartidoDasConcessoes(concessoes, contexto));
   m.pendencia.resultado = { aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado };
   m.votacoes.unshift({ mes: m.mes, projeto: proposta.nome, aprovado: resultado.aprovado, camara: resultado.camara, senado: resultado.senado });
   aplicar(m, { "e.primario": -0.025 * concessoes.emendas, "s.confianca": -concessoes.cargos });
