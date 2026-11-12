@@ -1,9 +1,10 @@
 import type { TipoCena } from "./cenas";
+import { ACORDOS, ORGANIZACOES, type TipoAcordo } from "./diplomacia";
 import type { Efeito } from "./mandato-dados";
 
 // Cenas com diálogo: reunião ministerial, entrevista e pronunciamento. Quem fala é sempre personagem fictício
 // ou o próprio jogador, por escolha dele: ministros reais nunca recebem falas inventadas.
-export type IdDialogo = "reuniao" | "entrevista" | "pronunciamento";
+export type IdDialogo = "reuniao" | "entrevista" | "pronunciamento" | "visita";
 
 export type Dialogo = {
   id: IdDialogo;
@@ -12,10 +13,27 @@ export type Dialogo = {
   titulo: string;
   quem: { nome: string; papel: string; cor: string };
   falas: string[];
-  opcoes: { texto: string; efeito: Efeito }[];
+  opcoes: { texto: string; efeito: Efeito; acordo?: TipoAcordo }[];
 };
 
 export function montarDialogo(id: IdDialogo, contexto: string | null): Dialogo {
+  if (id === "visita") {
+    const parceiro = contexto ?? "Mercosul";
+    const organizacao = ORGANIZACOES.includes(parceiro);
+    return {
+      id,
+      fundo: "aviao",
+      sobretitulo: organizacao ? `Cúpula · ${parceiro}` : `Visita oficial · ${parceiro}`,
+      titulo: organizacao ? `Reunião de cúpula: ${parceiro}` : `Reunião com a delegação: ${parceiro}`,
+      quem: { nome: organizacao ? `Secretariado do ${parceiro}` : `Delegação: ${parceiro}`, papel: "Negociadores (personagens fictícios)", cor: "#6f9cf0" },
+      falas: [
+        "Bem-vindo, presidente. A agenda está pronta e a imprensa espera do lado de fora.",
+        "Há espaço para um acordo hoje. Nada está garantido: depende da confiança entre as partes.",
+        "Qual proposta o Brasil coloca na mesa?",
+      ],
+      opcoes: (Object.keys(ACORDOS) as TipoAcordo[]).map((tipo) => ({ texto: `${ACORDOS[tipo].nome}: ${ACORDOS[tipo].resumo}`, efeito: {}, acordo: tipo })),
+    };
+  }
   if (id === "reuniao") {
     return {
       id,

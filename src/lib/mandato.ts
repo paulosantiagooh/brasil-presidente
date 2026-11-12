@@ -9,6 +9,7 @@ import { POLITICOS, semAcento, type Pessoa } from "./pessoas";
 import { noEstado } from "./estados";
 import { CRISES, desfechoDaCrise, NOME_DESFECHO } from "./crises";
 import { montarDialogo, type IdDialogo } from "./dialogos";
+import { ACORDOS, chanceDoAcordo, type TipoAcordo } from "./diplomacia";
 import { INDICADOR_DA_PASTA, PRAZO_DA_META, type MetaDoMinistro } from "./metas-ministros";
 import {
   AFRONTAR_STF,
@@ -582,6 +583,7 @@ export type Acao =
   | { tipo: "intervencao"; uf: string }
   | { tipo: "glo"; uf: string }
   | { tipo: "golpe" }
+  | { tipo: "visita-oficial"; parceiro: string }
   | { tipo: "meta-cobrar"; ministerio: string };
 
 function bonusDoCongresso(m: Mandato) {
@@ -1030,6 +1032,14 @@ function fazerAcao(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
     m.pendentes.push({ mes: m.mes + 1, efeito: GLO, texto: `Tropas encerram a operação de garantia da lei e da ordem ${noEstado(acao.uf)}.` });
     aplicar(m, { aprovacao: 0.5 });
     noticiar(m, `Decreto de garantia da lei e da ordem: Forças Armadas nas ruas ${noEstado(acao.uf)} por 30 dias.`);
+  }
+
+  if (acao.tipo === "visita-oficial") {
+    if (!(acao.parceiro in m.relacoes)) return m;
+    m.relacoes[acao.parceiro] = limitar(m.relacoes[acao.parceiro] + 3);
+    noticiar(m, `Visita oficial: o presidente viaja para encontrar ${acao.parceiro}.`);
+    m.pendencia = { tipo: "dialogo", id: "visita", contexto: acao.parceiro };
+    m.fase = "pendencia";
   }
 
   if (acao.tipo === "golpe") {
@@ -1745,10 +1755,41 @@ export function responderDialogo(original: Mandato, opcao: number): Mandato {
   if (m.pendencia?.tipo !== "dialogo") return m;
   const dialogo = montarDialogo(m.pendencia.id, m.pendencia.contexto);
   const escolha = dialogo.opcoes[opcao] ?? dialogo.opcoes[0];
+  if (escolha.acordo && m.pendencia.contexto) return negociarAcordo(m, m.pendencia.contexto, escolha.acordo);
   aplicar(m, escolha.efeito);
   noticiar(m, `${dialogo.titulo} (${escolha.texto.replace(/\.$/, "")})`);
   m.pendencia = null;
   m.fase = "gestao";
+  return m;
+}
+
+// Nenhum acordo é garantido. Fechado, ele melhora a relação e traz efeitos aos poucos.
+function negociarAcordo(m: Mandato, parceiro: string, tipo: TipoAcordo): Mandato {
+  const modelo = ACORDOS[tipo];
+  const relacao = m.relacoes[parceiro] ?? 60;
+  const fechou = sortear(m) < chanceDoAcordo(modelo, relacao);
+  if (fechou) {
+    m.relacoes[parceiro] = limitar(relacao + modelo.relacao);
+    if (parceiro === "Estados Unidos") m.relacoes.China = limitar(m.relacoes.China - 2);
+    if (parceiro === "China") m.relacoes["Estados Unidos"] = limitar(m.relacoes["Estados Unidos"] - 2);
+    aplicar(m, modelo.imediato);
+    const metade = Object.fromEntries(Object.entries(modelo.gradual).map(([k, v]) => [k, v / 2]));
+    m.pendentes.push({ mes: m.mes + Math.round(modelo.meses / 2), efeito: metade, texto: `Primeiros frutos do acordo com ${parceiro}.` });
+    m.pendentes.push({ mes: m.mes + modelo.meses, efeito: metade, texto: `O acordo com ${parceiro} chega ao efeito completo.` });
+    noticiar(m, `${modelo.nome} ${modelo.feminino ? "fechada" : "fechado"} com ${parceiro}.`);
+  } else {
+    m.relacoes[parceiro] = limitar(relacao - 3);
+    aplicar(m, { aprovacao: -0.3 });
+    noticiar(m, `Sem acordo: a negociação com ${parceiro} terminou sem assinatura.`);
+  }
+  mostrarResultado(m, {
+    sobretitulo: `Diplomacia · ${parceiro}`,
+    titulo: fechou ? `${modelo.nome} ${modelo.feminino ? "assinada" : "assinado"}` : "A negociação terminou sem acordo",
+    texto: fechou
+      ? `A relação com ${parceiro} melhorou. Os efeitos chegam aos poucos: metade em ${Math.round(modelo.meses / 2)} meses e o resto em ${modelo.meses}.`
+      : `A delegação de ${parceiro} pediu mais tempo. A relação esfriou um pouco. Com mais confiança, a chance de fechar sobe.`,
+    cena: fechou ? "aviao" : "imprensa",
+  });
   return m;
 }
 

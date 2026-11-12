@@ -54,6 +54,7 @@ import {
 } from "@/lib/mandato-dados";
 import { JORNAL } from "@/lib/drama";
 import { LIMITE_PROGRAMAS, PROGRAMAS_ECONOMICOS } from "@/lib/poderes";
+import { ACORDOS, chanceDoAcordo, ORGANIZACOES } from "@/lib/diplomacia";
 import { INDICADOR_DA_PASTA } from "@/lib/metas-ministros";
 import { BuscaPessoa } from "../BuscaPessoa";
 import { CenaAnimada } from "../cenas/CenaAnimada";
@@ -1139,6 +1140,31 @@ export function PainelDiplomacia(props: Props) {
           </button>
         </div>
         <p className="ajuda">Aproximar-se muito de Estados Unidos ou China pode esfriar a relação com o outro.</p>
+      </Bloco>
+      <Bloco titulo="Visita oficial e acordos">
+        <p className="ajuda">
+          Viaje para encontrar um país ou uma organização ({ORGANIZACOES.join(", ")}) e coloque um acordo na mesa. Nenhum
+          acordo é garantido: quanto melhor a relação, maior a chance. Gasta uma ação.
+        </p>
+        <ul className="lista-acoes">
+          {(Object.keys(ACORDOS) as (keyof typeof ACORDOS)[]).map((tipo) => (
+            <li key={tipo} className="dado">
+              {ACORDOS[tipo].nome}: chance de {Math.round(chanceDoAcordo(ACORDOS[tipo], mandato.relacoes[parceiro] ?? 60) * 100)}% com{" "}
+              {parceiro}
+            </li>
+          ))}
+        </ul>
+        <button
+          type="button"
+          className="botao botao-destaque"
+          disabled={semAcoes}
+          onClick={() => {
+            fazer({ tipo: "visita-oficial", parceiro });
+            window.scrollTo({ top: 0 });
+          }}
+        >
+          {ORGANIZACOES.includes(parceiro) ? `Ir à cúpula: ${parceiro}` : `Visitar: ${parceiro}`}
+        </button>
       </Bloco>
     </div>
   );

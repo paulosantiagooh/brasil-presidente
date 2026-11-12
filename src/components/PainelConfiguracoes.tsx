@@ -115,7 +115,7 @@ export function PainelConfiguracoes() {
       <Escolha
         nome="musica"
         titulo="Música"
-        ajuda="A trilha original do jogo muda em cada fase e nas crises."
+        ajuda="No menu e nas aberturas toca o Hino Nacional. Na campanha, no governo e nas crises, a trilha do jogo."
         valor={config.musica}
         opcoes={MUSICAS}
         aoMudar={(musica) => {

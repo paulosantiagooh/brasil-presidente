@@ -1,6 +1,7 @@
 "use client";
 
 import { lerConfig } from "./config";
+import { enderecoDoHino } from "./hinos";
 import { audio, ruido } from "./sons";
 
 export type NomeTrilha = "abertura" | "campanha" | "mandato" | "crise" | "silencio";
@@ -297,7 +298,26 @@ function iniciar(nome: Tocavel) {
   if (!relogio) relogio = window.setInterval(agendar, 150);
 }
 
+// A música principal do jogo é o Hino Nacional, na gravação guardada em public/audio, sempre do começo.
+let faixaHino: HTMLAudioElement | null = null;
+
+function hino() {
+  if (!faixaHino) {
+    faixaHino = new Audio(enderecoDoHino("nacional"));
+    faixaHino.loop = true;
+    faixaHino.volume = VOLUME_HINO;
+  }
+  return faixaHino;
+}
+
+const VOLUME_HINO = 0.45;
+
+function pararHino() {
+  if (faixaHino && !faixaHino.paused) faixaHino.pause();
+}
+
 export function pararMusica() {
+  pararHino();
   if (tocando) soltar(tocando);
   tocando = null;
   window.clearInterval(relogio);
@@ -325,9 +345,19 @@ export function atualizarMusica() {
     return;
   }
   if (pedida === "silencio") {
-    if (tocando) pararMusica();
+    pararMusica();
     return;
   }
+  if (pedida === "abertura") {
+    if (tocando) pararMusica();
+    const faixa = hino();
+    if (podeTocar() && faixa.paused) {
+      faixa.currentTime = 0;
+      void faixa.play().catch(() => {});
+    }
+    return;
+  }
+  pararHino();
   if (podeTocar() && tocando?.nome !== pedida) iniciar(pedida);
 }
 
@@ -340,10 +370,11 @@ export function pedirTrilha(nome: NomeTrilha) {
     // Com o jogo em segundo plano, a música para; ela volta junto com a tela.
     document.addEventListener("visibilitychange", () => {
       const ctx = audio(false);
-      if (!ctx) return;
-      if (document.visibilityState === "hidden") void ctx.suspend();
-      else {
-        void ctx.resume();
+      if (document.visibilityState === "hidden") {
+        pararHino();
+        if (ctx) void ctx.suspend();
+      } else {
+        if (ctx) void ctx.resume();
         atualizarMusica();
       }
     });
@@ -365,6 +396,7 @@ export function abaixarMusica() {
 }
 
 function ajustarVolume() {
+  if (faixaHino) faixaHino.volume = abaixadas > 0 ? VOLUME_HINO * 0.4 : VOLUME_HINO;
   if (!mestre) return;
   const agora = mestre.context.currentTime;
   mestre.gain.cancelScheduledValues(agora);
