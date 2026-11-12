@@ -311,3 +311,12 @@ Depois construiremos a criação do candidato e conectaremos os sistemas de camp
 - Quem está na chapa, no STF, na PGR ou no Banco Central não pode ser nomeado para outro cargo.
 - Os acontecimentos têm cenas animadas de 5 segundos, com som, desenhadas pelo próprio jogo e só com silhuetas anônimas.
 - A música é original, tocada pelo navegador, e muda entre abertura, campanha, governo e crise.
+
+## Decisões de novembro de 2026: Poderes, economia e emoção
+
+- O Congresso aprova projetos próprios. O presidente sanciona, veta uma parte ou veta tudo, e o Congresso pode derrubar o veto em sessão, com 257 deputados e 41 senadores.
+- O STF toma decisões. O governo cumpre, recorre ou se recusa a cumprir, o que gera uma crise entre os Poderes e pode levar ao impeachment.
+- Forças Armadas: intervenção federal na segurança de um estado (com aprovação do Congresso) e operação de garantia da lei e da ordem.
+- Golpe de Estado: opção de alto risco, só com personagem fictício. Quase sempre fracassa, e a partida termina nos dois casos.
+- Pacote econômico com 18 programas de emprego, inflação, crescimento e renda. Programas acumulados rendem menos, e o desemprego fica mais difícil de baixar perto do pleno emprego.
+- Quatro ações por mês, e no mínimo 60 segundos nas decisões com tempo.

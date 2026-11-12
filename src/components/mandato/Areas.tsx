@@ -49,6 +49,7 @@ import {
   type AreaDoProjeto,
 } from "@/lib/mandato-dados";
 import { JORNAL } from "@/lib/drama";
+import { LIMITE_PROGRAMAS, PROGRAMAS_ECONOMICOS } from "@/lib/poderes";
 import { BuscaPessoa } from "../BuscaPessoa";
 import { CenaAnimada } from "../cenas/CenaAnimada";
 import { cenaDoAcontecimento } from "@/lib/cenas";
@@ -147,6 +148,76 @@ export function Painel({ mandato, campanha }: { mandato: Mandato; campanha: Camp
   );
 }
 
+const GRUPOS_PROGRAMA = ["Emprego", "Inflação", "Crescimento", "Renda"] as const;
+
+function previsaoDoPrograma(p: (typeof PROGRAMAS_ECONOMICOS)[number]) {
+  const sinal = (valor: number | undefined, bom: boolean) => (!valor ? null : (valor > 0) === bom ? "▲" : "▼");
+  const partes = [
+    ["Emprego", sinal(p.desemprego, false)],
+    ["Crescimento", sinal(p.pib, true)],
+    ["Inflação", p.ipca ? (p.ipca > 0 ? "▲" : "▼") : null],
+    ["Juros", p.selic ? (p.selic > 0 ? "▲" : "▼") : null],
+    ["Contas", sinal(p.primario, true)],
+  ].filter(([, seta]) => seta);
+  return `${p.meses} meses · ${partes.map(([nome, seta]) => `${nome} ${seta}`).join(" · ")}`;
+}
+
+function PacoteEconomico(props: Props) {
+  const { mandato } = props;
+  const { semAcoes, fazer } = useAcao(props);
+  const ativos = mandato.programas ?? [];
+  const lotado = ativos.length >= LIMITE_PROGRAMAS;
+  return (
+    <Bloco titulo="Pacote econômico">
+      <p className="ajuda">
+        Você decide onde mexer: emprego, inflação, crescimento ou renda. Decretos e medidas provisórias valem na
+        hora; projetos de lei passam pelo Congresso. Até {LIMITE_PROGRAMAS} programas ao mesmo tempo, e cada
+        anúncio gasta uma ação. Nas setas, ▲ é alta e ▼ é queda.
+      </p>
+      {ativos.length > 0 && (
+        <>
+          <h3 className="rotulo espaco-topo">Em vigor ({ativos.length} de {LIMITE_PROGRAMAS})</h3>
+          <ul className="lista-acoes">
+            {ativos.map((ativo) => (
+              <li key={ativo.id} className="programa-ativo">
+                <span>
+                  <strong>{ativo.nome}</strong>
+                  <span className="dado"> até {nomeDoMes(ativo.fim)}</span>
+                </span>
+                <button type="button" className="botao" disabled={semAcoes} onClick={() => fazer({ tipo: "programa-encerrar", id: ativo.id })}>
+                  Encerrar
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {GRUPOS_PROGRAMA.map((grupo) => (
+        <div key={grupo}>
+          <h3 className="rotulo espaco-topo">{grupo}</h3>
+          <ul className="lista-acoes">
+            {PROGRAMAS_ECONOMICOS.filter((p) => p.grupo === grupo).map((p) => {
+              const ativo = ativos.some((a) => a.id === p.id);
+              return (
+                <li key={p.id}>
+                  <button type="button" className="acao" disabled={semAcoes || ativo || lotado} onClick={() => fazer({ tipo: "programa", id: p.id })}>
+                    <span className="cartao-topo">
+                      <strong>{p.nome}</strong>
+                      <span className="dado">{p.instrumento}</span>
+                    </span>
+                    <span className="ajuda">{ativo ? "Em vigor." : p.resumo}</span>
+                    <span className="dado">{previsaoDoPrograma(p)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </Bloco>
+  );
+}
+
 export function PainelEconomia(props: Props) {
   const { mandato } = props;
   const e = mandato.economia;
@@ -179,6 +250,7 @@ export function PainelEconomia(props: Props) {
           demoram meses para aparecer.
         </p>
       </Bloco>
+      <PacoteEconomico {...props} />
       <Bloco titulo="Dívida pública">
         <ul className="lista-acoes">
           {(
@@ -829,13 +901,84 @@ export function PainelCongresso(props: Props) {
   );
 }
 
-export function PainelInstituicoes({ mandato }: { mandato: Mandato }) {
+function ForcasArmadas(props: Props) {
+  const { mandato } = props;
+  const { semAcoes, fazer } = useAcao(props);
+  const [uf, setUf] = useState("RJ");
+  const [golpe, setGolpe] = useState(false);
+  return (
+    <Bloco titulo="Forças Armadas">
+      <p className="ajuda">
+        Você é o comandante supremo. Dentro da Constituição, pode usar as Forças Armadas na segurança de um estado.
+      </p>
+      <label className="campo">
+        <span className="rotulo">Estado</span>
+        <select value={uf} onChange={(e) => setUf(e.target.value)}>
+          {UFS.map((sigla) => (
+            <option key={sigla}>{sigla}</option>
+          ))}
+        </select>
+      </label>
+      <ul className="lista-acoes espaco-topo">
+        <li>
+          <button type="button" className="acao" disabled={semAcoes} onClick={() => fazer({ tipo: "intervencao", uf })}>
+            <strong>Intervenção federal na segurança</strong>
+            <span className="ajuda">A União assume a segurança do estado. O Congresso precisa aprovar. Resultado em cerca de 2 meses.</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" className="acao" disabled={semAcoes} onClick={() => fazer({ tipo: "glo", uf })}>
+            <strong>Garantia da lei e da ordem</strong>
+            <span className="ajuda">Tropas nas ruas por 30 dias, sem passar pelo Congresso. Efeito rápido e curto.</span>
+          </button>
+        </li>
+        {!mandato.pessoaReal && (
+          <li>
+            <button type="button" className="acao acao-perigo" disabled={semAcoes} onClick={() => setGolpe(true)}>
+              <strong>Romper com a Constituição</strong>
+              <span className="ajuda">Tentar um golpe de Estado. É crime e quase sempre termina mal.</span>
+            </button>
+          </li>
+        )}
+      </ul>
+      <Janela aberta={golpe} titulo="Tentar um golpe de Estado?" aoFechar={() => setGolpe(false)}>
+        <div className="formulario">
+          <p>
+            Golpe de Estado é crime no Brasil (Código Penal, art. 359-M). No jogo, a chance de dar certo é pequena.
+            Se fracassar, o mandato acaba e você responde na Justiça. Se der certo, o país afunda e a partida
+            termina.
+          </p>
+          <div className="acoes">
+            <button
+              type="button"
+              className="botao botao-perigo"
+              onClick={() => {
+                setGolpe(false);
+                fazer({ tipo: "golpe" });
+                window.scrollTo({ top: 0 });
+              }}
+            >
+              Chamar os comandantes
+            </button>
+            <button type="button" className="botao" onClick={() => setGolpe(false)}>
+              Desistir
+            </button>
+          </div>
+        </div>
+      </Janela>
+    </Bloco>
+  );
+}
+
+export function PainelInstituicoes(props: Props) {
+  const { mandato } = props;
   const saiu = (nome: string) => {
     const vaga = VAGAS.find((v) => v.sai === nome);
     return vaga ? mandato.indicados.some((i) => i.vaga === vaga.id && i.aprovado) : false;
   };
   return (
     <div className="areas">
+      <ForcasArmadas {...props} />
       <Bloco titulo="Calendário de vagas">
         <ul className="diario">
           {VAGAS.map((vaga) => {

@@ -22,6 +22,10 @@ import {
   promessasDoMandato,
   responderCarta,
   responderEvento,
+  resumirEfeito,
+  sancionar,
+  decidirSobreSTF,
+  avancarGolpe,
   vagasAbertas,
   type Contexto,
   type Mandato,
@@ -50,7 +54,8 @@ import {
   PainelRelatorios,
   PainelSociedade,
 } from "./Areas";
-import { numero } from "./Comum";
+import { Barras, numero } from "./Comum";
+import { PASSOS_DO_GOLPE } from "@/lib/poderes";
 import { CartaDrama, RespostaCarta } from "./CartaDrama";
 import { TelaVotacao } from "./Votacao";
 
@@ -313,6 +318,132 @@ function TelaPendencia(props: {
     );
   }
 
+  if (pendencia.tipo === "sancao") {
+    const { projeto } = pendencia;
+    const efeitos = resumirEfeito(projeto.sancionar);
+    return (
+      <section className="boletim" aria-labelledby="titulo-sancao">
+        <CenaAnimada cena="lei" legenda="Sanciona ou veta?" chave={`sancao-${mandato.mes}-${projeto.id}`} />
+        <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Aprovado pelo Congresso</p>
+        <h1 id="titulo-sancao" className="titulo-tela">
+          {projeto.nome}
+        </h1>
+        <p className="texto-tela">
+          Autoria: {projeto.autoria.toLowerCase()}. {projeto.texto} A caneta agora é sua.
+        </p>
+        <Barras
+          itens={[
+            { nome: "Quanto o Congresso quer", valor: projeto.interesse * 100 },
+            { nome: "Apoio nas ruas", valor: projeto.popular * 100 },
+          ]}
+        />
+        <p className="rotulo espaco-topo">Se virar lei</p>
+        <ul className="mudancas">
+          {efeitos.map((efeito) => (
+            <li key={efeito.texto} className={efeito.bom ? "mudanca-boa" : "mudanca-ruim"}>
+              {efeito.sobe ? "▲" : "▼"} {efeito.texto}
+            </li>
+          ))}
+        </ul>
+        <div className="respostas espaco-topo">
+          <button type="button" className="resposta" onClick={() => atualizar((m) => sancionar(m, "sancionar"))}>
+            Sancionar. Vira lei agora, e o Congresso fica satisfeito.
+          </button>
+          <button type="button" className="resposta" onClick={() => atualizar((m) => sancionar(m, "parcial"))}>
+            Vetar uma parte. Metade do efeito, metade da briga.
+          </button>
+          <button type="button" className="resposta" onClick={() => atualizar((m) => sancionar(m, "vetar"))}>
+            Vetar tudo. Em dois meses, o Congresso pode derrubar o veto.
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (pendencia.tipo === "stf") {
+    const { decisao } = pendencia;
+    return (
+      <section className="boletim" aria-labelledby="titulo-stf">
+        <CenaAnimada cena="tribunal" legenda="O Supremo decidiu" chave={`stf-${mandato.mes}-${decisao.id}`} />
+        <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Supremo Tribunal Federal</p>
+        <h1 id="titulo-stf" className="titulo-tela">
+          {decisao.titulo}
+        </h1>
+        <p className="texto-tela">{decisao.texto}</p>
+        <div className="respostas espaco-topo">
+          <button type="button" className="resposta" onClick={() => atualizar((m) => decidirSobreSTF(m, "cumprir"))}>
+            Cumprir a decisão.
+          </button>
+          <button type="button" className="resposta" onClick={() => atualizar((m) => decidirSobreSTF(m, "recorrer"))}>
+            Recorrer ao plenário. Pode amenizar a conta, pode não mudar nada.
+          </button>
+          <button type="button" className="resposta resposta-perigo" onClick={() => atualizar((m) => decidirSobreSTF(m, "afrontar"))}>
+            Dizer que não vai cumprir. Crise entre os Poderes.
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (pendencia.tipo === "golpe") {
+    const passo = PASSOS_DO_GOLPE[pendencia.passo];
+    return (
+      <section className="carta carta-urgente" aria-labelledby="titulo-golpe">
+        <p className="faixa-urgente">Ruptura institucional</p>
+        <CenaAnimada cena="tanques" legenda={passo.titulo} chave={`golpe-${mandato.mes}-${pendencia.passo}`} />
+        <p className="sobretitulo">
+          Passo {pendencia.passo + 1} de {PASSOS_DO_GOLPE.length} · Simulação
+        </p>
+        <h1 id="titulo-golpe" className="titulo-tela">
+          {passo.titulo}
+        </h1>
+        <p className="fala">{passo.texto}</p>
+        <div className="respostas respostas-carta">
+          {passo.opcoes.map((opcao, indice) => (
+            <button key={opcao.texto} type="button" className="resposta" onClick={() => atualizar((m) => avancarGolpe(m, indice))}>
+              {opcao.texto}
+            </button>
+          ))}
+          <button type="button" className="resposta" onClick={() => atualizar((m) => avancarGolpe(m, "recuar"))}>
+            Recuar enquanto é tempo.
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (pendencia.tipo === "resultado") {
+    return (
+      <section className="boletim" aria-labelledby="titulo-resultado">
+        <CenaAnimada cena={pendencia.cena} legenda={pendencia.titulo} chave={`resultado-${mandato.mes}-${pendencia.titulo}`} />
+        <p className="sobretitulo">
+          {nomeDoMes(mandato.mes)} · {pendencia.sobretitulo}
+        </p>
+        <h1 id="titulo-resultado" className="titulo-tela">
+          {pendencia.titulo}
+        </h1>
+        <p className="texto-tela">{pendencia.texto}</p>
+        {pendencia.placar && (
+          <dl className="placar placar-duplo">
+            {pendencia.placar.map((linha) => (
+              <div key={linha.rotulo}>
+                <dt>{linha.rotulo}</dt>
+                <dd>{linha.sim}</dd>
+                <p>contra {linha.nao}</p>
+              </div>
+            ))}
+          </dl>
+        )}
+        <footer className="rodape-passo">
+          <span />
+          <button type="button" className="botao botao-destaque" onClick={() => atualizar(fecharPendencia)}>
+            Continuar
+          </button>
+        </footer>
+      </section>
+    );
+  }
+
   const { evento } = pendencia;
 
   return (
@@ -426,18 +557,22 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
   const perdeu = reeleicao?.venceu === false;
   // Lula já estaria no segundo mandato seguido: a Constituição não permite o terceiro.
   const terceiroMandato = candidato.pessoaReal === "lula";
-  const podeDisputar = !mandato.cassado && !segundo && !reeleicao && !terceiroMandato;
+  const podeDisputar = !mandato.cassado && !mandato.golpe && !segundo && !reeleicao && !terceiroMandato;
 
   return (
     <section className="campanha" aria-labelledby="titulo-fim">
       <CenaAnimada
-        cena={mandato.cassado || perdeu || legado.pontos < 50 ? "derrota" : "fogos"}
-        legenda={mandato.cassado ? "O mandato chega ao fim antes da hora" : "O país julga o governo"}
+        cena={mandato.golpe === "venceu" ? "tanques" : mandato.cassado || perdeu || legado.pontos < 50 ? "derrota" : "fogos"}
+        legenda={mandato.golpe ? "A história julga o golpe" : mandato.cassado ? "O mandato chega ao fim antes da hora" : "O país julga o governo"}
         chave={`fim-${mandato.mes}`}
       />
       <p className="sobretitulo">{mandato.cassado ? nomeDoMes(mandato.mes) : `Dezembro de ${segundo ? 2034 : 2030}`} · Fim do mandato · Simulação</p>
       <h1 id="titulo-fim" className="titulo-tela">
-        {mandato.cassado
+        {mandato.golpe === "venceu"
+          ? "O Brasil sob regime de exceção"
+          : mandato.golpe === "fracassou"
+            ? "A tentativa de golpe fracassou"
+            : mandato.cassado
           ? "O mandato foi interrompido"
           : segundo
             ? "Fim do segundo mandato"
@@ -446,7 +581,11 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
               : "Fim do primeiro mandato"}
       </h1>
       <p className="texto-tela">
-        {mandato.cassado
+        {mandato.golpe === "venceu"
+          ? `${candidato.nomeUrna} rompeu com a Constituição. Na simulação, o país ficou isolado, a economia desabou e a partida terminou.`
+          : mandato.golpe === "fracassou"
+            ? `${candidato.nomeUrna} foi afastado e responde na Justiça por crime contra o Estado Democrático de Direito.`
+            : mandato.cassado
           ? `${candidato.nomeUrna} deixou o governo depois de um impeachment.`
           : segundo
             ? `${candidato.nomeUrna} completou oito anos de governo. A Constituição não permite um terceiro mandato seguido.`
@@ -726,7 +865,7 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
       {aba === "obras" && <PainelObras {...props} />}
       {aba === "estatais" && <PainelEstatais {...props} />}
       {aba === "congresso" && <PainelCongresso {...props} />}
-      {aba === "instituicoes" && <PainelInstituicoes mandato={mandato} />}
+      {aba === "instituicoes" && <PainelInstituicoes {...props} />}
       {aba === "diplomacia" && <PainelDiplomacia {...props} />}
       {aba === "relatorios" && <PainelRelatorios mandato={mandato} />}
     </section>

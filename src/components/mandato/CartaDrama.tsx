@@ -105,7 +105,7 @@ export function CartaDrama({ id, quem, titulo, texto, capitulo, urgente, opcoes,
 export function RespostaCarta(props: {
   quem: string;
   resposta: string;
-  mudancas: { texto: string; bom: boolean }[];
+  mudancas: { texto: string; bom: boolean; sobe?: boolean }[];
   comentarios?: { usuario: string; texto: string }[];
   aoSeguir: () => void;
 }) {
@@ -126,7 +126,7 @@ export function RespostaCarta(props: {
       <ul className="mudancas">
         {mudancas.map((mudanca) => (
           <li key={mudanca.texto} className={mudanca.bom ? "mudanca-boa" : "mudanca-ruim"}>
-            {mudanca.bom ? "▲" : "▼"} {mudanca.texto}
+            {(mudanca.sobe ?? mudanca.bom) ? "▲" : "▼"} {mudanca.texto}
           </li>
         ))}
       </ul>

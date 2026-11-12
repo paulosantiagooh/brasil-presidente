@@ -18,6 +18,9 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - Uma pessoa, um cargo: ministro, presidente de estatal, STF, PGR e Banco Central não acumulam. Nova nomeação tira a pessoa do cargo anterior e abre uma vaga obrigatória (`resolverNomeacao` e `vagasAbertas` em `src/lib/mandato.ts`). Quem está na chapa ou no STF não pode ser nomeado.
 - As cenas de 5 segundos ficam em `src/components/cenas/` e são desenhadas no navegador, só com silhuetas anônimas: nunca use rosto ou imagem de pessoa real. A ligação entre acontecimento e cena fica em `src/lib/cenas.ts`.
 - A música é original e tocada pelo navegador (`src/lib/musica.ts`), sem arquivo de áudio. Nunca copie jingle, hino ou música existente.
+- Os outros Poderes ficam em `src/lib/poderes.ts`: projetos do Congresso para sanção ou veto (o veto pode ser derrubado com 257 deputados e 41 senadores), decisões do STF, Forças Armadas dentro da Constituição (intervenção federal e GLO) e o pacote econômico. Textos nunca citam pessoas reais.
+- O golpe de Estado é crime no Brasil (Código Penal, art. 359-M): no jogo, quase sempre fracassa, encerra a partida nos dois casos e nunca aparece quando o jogador é uma pessoa real.
+- Decisões com tempo (crises urgentes e debate) têm no mínimo 60 segundos.
 - Atributos de ministros reais vêm do tipo de cargo e do alinhamento na partida, nunca de uma nota pessoal. Técnicos são personagens fictícios.
 - As bancadas de `src/lib/governo.ts` partem da Câmara eleita em 2026 e da projeção do Senado para 2027.
 - O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e os nomes técnicos para cargos são fictícios. Eventos nunca citam pessoas reais.

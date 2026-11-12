@@ -39,8 +39,8 @@ export type Carta = {
 export const CARTAS: Carta[] = [
   // O áudio
   {
-    id: "audio-1", sensivel: true, quem: "coronel", capitulo: "O áudio · Capítulo 1", titulo: "Vazou um áudio", urgente: 25,
-    texto: "Presidente, um áudio do Tico caiu nas redes. Ele promete contratos de publicidade a um empresário. Em 25 segundos isso estará em todos os celulares do país.",
+    id: "audio-1", sensivel: true, quem: "coronel", capitulo: "O áudio · Capítulo 1", titulo: "Vazou um áudio", urgente: 90,
+    texto: "Presidente, um áudio do Tico caiu nas redes. Ele promete contratos de publicidade a um empresário. Em um minuto isso estará em todos os celulares do país.",
     bloqueia: ["tico-fora"],
     opcoes: [
       { texto: "Demitir o Tico agora.", resposta: "Tico saiu chorando do Palácio. Disse que sabe muita coisa.", efeito: { "s.confianca": 3, aprovacao: 1 }, define: ["tico-fora"], depois: { id: "audio-vinganca", meses: 3 } },
@@ -58,7 +58,7 @@ export const CARTAS: Carta[] = [
     ],
   },
   {
-    id: "audio-chantagem", quem: "helena", capitulo: "O áudio · Capítulo 3", titulo: "Ele voltou", somenteAgendada: true, urgente: 20,
+    id: "audio-chantagem", quem: "helena", capitulo: "O áudio · Capítulo 3", titulo: "Ele voltou", somenteAgendada: true, urgente: 60,
     texto: "O Tico quer o dobro. E gravou a nossa primeira conversa. Se isso sair, é o fim do governo.",
     opcoes: [
       { texto: "Contar tudo à nação antes dele.", resposta: "Você foi à TV e assumiu o erro. Metade do país respeitou, a outra pediu a sua cabeça.", efeito: { aprovacao: -5, "s.confianca": 4, pressao: 10 } },
@@ -85,7 +85,7 @@ export const CARTAS: Carta[] = [
 
   // Ataque ao real
   {
-    id: "real-1", quem: "nair", capitulo: "Ataque ao real · Capítulo 1", titulo: "O dólar está disparando", urgente: 20,
+    id: "real-1", quem: "nair", capitulo: "Ataque ao real · Capítulo 1", titulo: "O dólar está disparando", urgente: 60,
     texto: "O mercado abriu em pânico. O dólar subiu 4% em uma hora. Fundos estrangeiros estão saindo. O que eu digo à imprensa?",
     opcoes: [
       { texto: "Anunciar corte de gastos imediato.", resposta: "O dólar parou de subir. Os ministros querem o seu pescoço.", efeito: { "e.confianca": 6, "e.dolar": -0.15, aprovacao: -3 }, depois: { id: "real-ministros", meses: 2 } },
@@ -95,7 +95,7 @@ export const CARTAS: Carta[] = [
     semResposta: { resposta: "Silêncio do governo. O mercado entendeu que não havia comando.", efeito: { "e.dolar": 0.4, "e.confianca": -7, aprovacao: -3 } },
   },
   {
-    id: "real-2", quem: "nair", capitulo: "Ataque ao real · Capítulo 2", titulo: "Corrida aos bancos?", somenteAgendada: true, urgente: 20,
+    id: "real-2", quem: "nair", capitulo: "Ataque ao real · Capítulo 2", titulo: "Corrida aos bancos?", somenteAgendada: true, urgente: 60,
     texto: "Há filas em caixas eletrônicos. Boato de confisco nas redes. Se isso virar pânico, perdemos o controle.",
     opcoes: [
       { texto: "Falar à nação ao vivo, agora.", resposta: "Você olhou para a câmera e garantiu cada centavo. As filas sumiram.", efeito: { aprovacao: 4, "e.confianca": 5, pressao: -8 } },
@@ -114,7 +114,7 @@ export const CARTAS: Carta[] = [
 
   // Vírus novo
   {
-    id: "virus-1", quem: "helena", capitulo: "Emergência sanitária · Capítulo 1", titulo: "Casos estranhos em Manaus", urgente: 25,
+    id: "virus-1", quem: "helena", capitulo: "Emergência sanitária · Capítulo 1", titulo: "Casos estranhos em Manaus", urgente: 90,
     texto: "Hospitais relatam um vírus respiratório desconhecido. Os técnicos pedem barreira nos aeroportos hoje. O turismo e o comércio vão gritar.",
     opcoes: [
       { texto: "Fechar as barreiras agora.", resposta: "Foi impopular e caro. Os técnicos disseram que você ganhou semanas preciosas.", efeito: { "e.pib": -0.2, aprovacao: -2 }, define: ["virus-agiu"], depois: { id: "virus-2", meses: 2 } },
@@ -150,7 +150,7 @@ export const CARTAS: Carta[] = [
     ],
   },
   {
-    id: "zeca-troco", quem: "helena", capitulo: "O preço do apoio · Capítulo final", titulo: "O troco", somenteAgendada: true, urgente: 20,
+    id: "zeca-troco", quem: "helena", capitulo: "O preço do apoio · Capítulo final", titulo: "O troco", somenteAgendada: true, urgente: 60,
     texto: "O Zeca virou a bancada. Em 20 minutos, a Câmara vota um projeto que estoura o Orçamento. Se passar, a conta é nossa.",
     opcoes: [
       { texto: "Ligar para ele e ceder.", resposta: "Ele atendeu no primeiro toque. Quase dava para ouvir o sorriso.", efeito: { congresso: 4, "s.confianca": -2, aprovacao: -1 } },
@@ -161,7 +161,7 @@ export const CARTAS: Carta[] = [
 
   // Barragem
   {
-    id: "barragem-1", quem: "coronel", capitulo: "A barragem · Capítulo 1", titulo: "Rompeu", urgente: 20,
+    id: "barragem-1", quem: "coronel", capitulo: "A barragem · Capítulo 1", titulo: "Rompeu", urgente: 60,
     texto: "Uma barragem de mineração rompeu em Minas. A lama desce para uma cidade de 40 mil pessoas. Temos minutos para ordenar a evacuação federal.",
     opcoes: [
       { texto: "Acionar Exército e Defesa Civil já.", resposta: "Helicópteros tiraram milhares de pessoas a tempo. Um país inteiro respirou.", efeito: { aprovacao: 6, pressao: -6, "e.primario": -0.1 }, depois: { id: "barragem-2", meses: 2 } },
@@ -239,7 +239,7 @@ export const CARTAS: Carta[] = [
     ],
   },
   {
-    id: "coronel-fronteira", quem: "coronel", titulo: "Movimentação na fronteira", urgente: 20,
+    id: "coronel-fronteira", quem: "coronel", titulo: "Movimentação na fronteira", urgente: 60,
     texto: "Facções armadas cruzaram a fronteira e atacaram um posto da PF. Temos a localização. A operação é arriscada, e o relógio está correndo.",
     opcoes: [
       { texto: "Autorizar a operação.", resposta: "Operação concluída sem baixas. Você assistiu tudo em silêncio, no escuro.", efeito: { "p.crime": -4, aprovacao: 3, "p.fronteiras": 3 } },
@@ -288,7 +288,7 @@ export const CARTAS: Carta[] = [
     ],
   },
   {
-    id: "vazamento-prova", quem: "tico", titulo: "Hackearam a gente", urgente: 20, bloqueia: ["tico-fora"],
+    id: "vazamento-prova", quem: "tico", titulo: "Hackearam a gente", urgente: 60, bloqueia: ["tico-fora"],
     texto: "Vazaram mensagens internas do governo! Tem piada com governador, tem crítica a aliado, tem de tudo. Tá subindo nos assuntos do momento agora.",
     opcoes: [
       { texto: "Rir de si mesmo nas redes.", resposta: "Você postou um meme sobre o próprio vazamento. Virou o presidente mais comentado do ano.", efeito: { aprovacao: 3, congresso: -1 } },
@@ -299,7 +299,7 @@ export const CARTAS: Carta[] = [
 ];
 
 export const CARTA_RUAS: Carta = {
-  id: "ruas-fogo", quem: "coronel", titulo: "O país está em chamas", urgente: 20, capitulo: "Crise nas ruas",
+  id: "ruas-fogo", quem: "coronel", titulo: "O país está em chamas", urgente: 60, capitulo: "Crise nas ruas",
   texto: "Um milhão de pessoas nas ruas. Marcharam até a Esplanada. Ministros pedem Força Nacional. Outros pedem que você fale. Eles estão na frente do Palácio agora.",
   opcoes: [
     { texto: "Sair e falar com a multidão.", resposta: "Você desceu a rampa sem escolta. O silêncio durou um segundo, e o país inteiro parou para ver.", efeito: { aprovacao: 6, pressao: -30 } },

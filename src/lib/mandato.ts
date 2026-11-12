@@ -6,6 +6,19 @@ import type { Eleicao } from "./eleicao";
 import { dadosDoVice } from "./candidato";
 import { AREAS, calcularBalanco, custoDoOrcamento, estimarVotos, ministeriosAtivos, pastasDoPartido, pessoaPorId, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
 import { POLITICOS, semAcento, type Pessoa } from "./pessoas";
+import { noEstado } from "./estados";
+import {
+  AFRONTAR_STF,
+  DECISOES_DO_STF,
+  GLO,
+  INTERVENCAO,
+  LIMITE_PROGRAMAS,
+  PASSOS_DO_GOLPE,
+  PROGRAMAS_ECONOMICOS,
+  PROJETOS_DO_CONGRESSO,
+  type DecisaoDoSTF,
+  type ProjetoDoCongresso,
+} from "./poderes";
 import {
   ACOES_DIPLOMATICAS,
   AREAS_MEDIDA,
@@ -32,7 +45,7 @@ import {
 } from "./mandato-dados";
 
 export const MESES = 48;
-export const ACOES_POR_MES = 3;
+export const ACOES_POR_MES = 4;
 export const LIMITE_OBRAS = 12;
 
 const NOME_MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -128,6 +141,7 @@ export type PropostaEmVoto = {
   estatal?: { id: string; controle: "capital-aberto" | "privatizada" };
   novaEstatal?: string;
   fusao?: { de: string; para: string };
+  programaId?: string;
 };
 
 export type Concessoes = { emendas: number; cargos: number; texto: number };
@@ -138,10 +152,16 @@ export type Pendencia =
   | { tipo: "evento"; evento: EventoMandato }
   | { tipo: "impeachment" }
   | { tipo: "carta"; carta: Carta }
-  | { tipo: "carta-resposta"; quem: string; resposta: string; mudancas: { texto: string; bom: boolean }[]; comentarios: Comentario[] }
+  | { tipo: "carta-resposta"; quem: string; resposta: string; mudancas: { texto: string; bom: boolean; sobe?: boolean }[]; comentarios: Comentario[] }
   | { tipo: "votacao"; proposta: PropostaEmVoto; concessoes: Concessoes; resultado: ResultadoVoto | null }
   | { tipo: "indicacao"; vaga: Vaga }
-  | { tipo: "resultado-indicacao"; titulo: string; texto: string; sim: number; nao: number };
+  | { tipo: "resultado-indicacao"; titulo: string; texto: string; sim: number; nao: number }
+  | { tipo: "sancao"; projeto: ProjetoDoCongresso }
+  | { tipo: "stf"; decisao: DecisaoDoSTF }
+  | { tipo: "golpe"; passo: number; chance: number }
+  | { tipo: "resultado"; sobretitulo: string; titulo: string; texto: string; cena: TipoCena; placar?: { rotulo: string; sim: number; nao: number }[] };
+
+export type ProgramaAtivo = { id: string; nome: string; inicio: number; fim: number };
 
 export type Mandato = {
   versao: 1;
@@ -172,7 +192,7 @@ export type Mandato = {
   inicio: { economia: Economia; sociedade: Sociedade; seguranca: Seguranca; aprovacao: number; congresso: number };
   vagasReabertas: { id: string; mes: number }[];
   medidas: { id: number; mes: number; titulo: string; descricao: string; instrumento: string; situacao: string }[];
-  mps: { mes: number; medidaId: number; titulo: string; economia: number; efeito: Efeito }[];
+  mps: { mes: number; medidaId: number; titulo: string; economia: number; efeito: Efeito; programaId?: string }[];
   resumoMes: { mes: number; aprovacao: number; pib: number; ipca: number; desemprego: number } | null;
   limite: number;
   cassado: boolean;
@@ -182,6 +202,10 @@ export type Mandato = {
   pessoaReal?: boolean;
   nomeacao?: Nomeacao | null;
   cena?: TipoCena | null;
+  programas?: ProgramaAtivo[];
+  vetos?: { id: string; mes: number; parcial: boolean }[];
+  projetosDoCongresso?: string[];
+  golpe?: "fracassou" | "venceu" | null;
 };
 
 export type Contexto = { governo: Governo; candidato: Candidato };
@@ -425,14 +449,20 @@ const NOME_EFEITO: Record<string, { nome: string; invertido?: boolean }> = {
   "s.ambiente": { nome: "Meio ambiente" },
   "p.crime": { nome: "Combate ao crime", invertido: true },
   "p.fronteiras": { nome: "Fronteiras" },
+  "p.homicidios": { nome: "Homicídios", invertido: true },
+  "p.roubos": { nome: "Roubos", invertido: true },
+  "p.prisional": { nome: "Lotação dos presídios", invertido: true },
+  "e.carga": { nome: "Impostos", invertido: true },
+  "e.desemprego": { nome: "Desemprego", invertido: true },
+  "e.desigualdade": { nome: "Desigualdade", invertido: true },
 };
 
 export function resumirEfeito(efeito: Efeito) {
   return Object.entries(efeito)
-    .filter(([chave, valor]) => valor !== 0 && NOME_EFEITO[chave])
+    .filter(([chave, valor]) => valor !== 0 && (NOME_EFEITO[chave] || chave.startsWith("r.")))
     .map(([chave, valor]) => {
-      const dados = NOME_EFEITO[chave];
-      return { texto: dados.nome, bom: dados.invertido ? valor < 0 : valor > 0 };
+      const dados = NOME_EFEITO[chave] ?? { nome: `Relação com ${chave.slice(2)}` };
+      return { texto: dados.nome, bom: dados.invertido ? valor < 0 : valor > 0, sobe: valor > 0 };
     });
 }
 
@@ -465,6 +495,8 @@ export function responderCarta(original: Mandato, opcao: number | null): Mandato
 }
 
 export function notaDoGoverno(m: Mandato, melhoraram: number, total: number) {
+  if (m.golpe === "venceu") return { pontos: 0, nota: "F", titulo: "Ditador: o país pagou a conta" };
+  if (m.golpe === "fracassou") return { pontos: 0, nota: "F", titulo: "Golpista derrotado pela democracia" };
   const pontos = Math.round(
     limitar(
       (melhoraram / Math.max(1, total)) * 35 + m.aprovacao * 0.45 + m.drama.metasFeitas.length * 3 +
@@ -512,7 +544,12 @@ export type Acao =
   | { tipo: "reforma"; id: string; ministerio: string; nome: string; tecnico: boolean }
   | { tipo: "diplomacia"; parceiro: string; acao: string }
   | { tipo: "seguranca"; id: string }
-  | { tipo: "divida"; acao: "alongar" | "amortizar" | "emitir" };
+  | { tipo: "divida"; acao: "alongar" | "amortizar" | "emitir" }
+  | { tipo: "programa"; id: string }
+  | { tipo: "programa-encerrar"; id: string }
+  | { tipo: "intervencao"; uf: string }
+  | { tipo: "glo"; uf: string }
+  | { tipo: "golpe" };
 
 function bonusDoCongresso(m: Mandato) {
   return (m.congresso - 50) / 250;
@@ -687,6 +724,10 @@ export function colocarEmVotacao(original: Mandato, contexto: Contexto): Mandato
     const fator = Math.pow(0.8, concessoes.texto);
     const efeito = Object.fromEntries(Object.entries(proposta.efeito).map(([k, v]) => [k, v * fator]));
     if (proposta.projetoId) m.projetosAprovados.push(proposta.projetoId);
+    if (proposta.programaId) {
+      iniciarPrograma(m, proposta.programaId);
+      noticiar(m, `Começa a valer: ${proposta.nome}.`);
+    }
     if (proposta.estatal) m.estatais[proposta.estatal.id].controle = proposta.estatal.controle;
     if (proposta.fusao) m.estatais[proposta.fusao.de].controle = "fundida";
     if (proposta.novaEstatal) {
@@ -717,6 +758,9 @@ const CENA_DA_ACAO: Partial<Record<Acao["tipo"], TipoCena>> = {
   pronunciamento: "imprensa",
   reforma: "assinatura",
   "estatal-presidente": "assinatura",
+  programa: "alta",
+  intervencao: "tanques",
+  glo: "tanques",
 };
 
 export function executar(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
@@ -882,6 +926,52 @@ function fazerAcao(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
     noticiar(m, `Lançado: ${programa.nome}.`);
   }
 
+  if (acao.tipo === "programa") {
+    const programa = PROGRAMAS_ECONOMICOS.find((p) => p.id === acao.id);
+    const ativos = m.programas ?? [];
+    if (!programa || ativos.some((p) => p.id === programa.id) || ativos.length >= LIMITE_PROGRAMAS) return m;
+    if (programa.instrumento === "Projeto de lei") {
+      abrirVotacao(m, {
+        nome: programa.nome, tipo: programa.instrumento, economia: programa.economia, camara: null, senado: null,
+        atraso: 0, efeito: programa.anuncio, programaId: programa.id,
+      });
+    } else {
+      iniciarPrograma(m, programa.id);
+      aplicar(m, programa.anuncio);
+      if (programa.instrumento === "Medida provisória") {
+        m.mps.push({ mes: m.mes + 4, medidaId: 0, titulo: programa.nome, economia: programa.economia, efeito: programa.anuncio, programaId: programa.id });
+      }
+      noticiar(m, `${programa.instrumento === "Decreto" ? "Decreto assinado" : "Medida provisória publicada"}: ${programa.nome}.`);
+    }
+  }
+
+  if (acao.tipo === "programa-encerrar") {
+    const ativo = (m.programas ?? []).find((p) => p.id === acao.id);
+    if (!ativo) return m;
+    m.programas = (m.programas ?? []).filter((p) => p.id !== acao.id);
+    noticiar(m, `Governo encerra antes do prazo: ${ativo.nome}.`);
+  }
+
+  if (acao.tipo === "intervencao") {
+    abrirVotacao(m, {
+      nome: `Intervenção federal na segurança ${noEstado(acao.uf)}`, tipo: "Decreto de intervenção", economia: 65,
+      camara: null, senado: null, atraso: 2, efeito: INTERVENCAO,
+    });
+  }
+
+  if (acao.tipo === "glo") {
+    m.pendentes.push({ mes: m.mes + 1, efeito: GLO, texto: `Tropas encerram a operação de garantia da lei e da ordem ${noEstado(acao.uf)}.` });
+    aplicar(m, { aprovacao: 0.5 });
+    noticiar(m, `Decreto de garantia da lei e da ordem: Forças Armadas nas ruas ${noEstado(acao.uf)} por 30 dias.`);
+  }
+
+  if (acao.tipo === "golpe") {
+    if (m.pessoaReal) return m;
+    const chance = 0.06 + Math.max(0, m.aprovacao - 40) / 400 + (m.drama.pressao > 60 ? 0.03 : 0);
+    m.pendencia = { tipo: "golpe", passo: 0, chance };
+    m.fase = "pendencia";
+  }
+
   if (acao.tipo === "divida") {
     if (acao.acao === "alongar") {
       aplicar(m, { "e.confianca": 2, "e.primario": -0.02 });
@@ -934,6 +1024,35 @@ function avancarObras(m: Mandato) {
   }
 }
 
+function iniciarPrograma(m: Mandato, id: string) {
+  const programa = PROGRAMAS_ECONOMICOS.find((p) => p.id === id);
+  if (!programa) return;
+  m.programas = [...(m.programas ?? []).filter((p) => p.id !== id), { id, nome: programa.nome, inicio: m.mes, fim: m.mes + programa.meses }];
+}
+
+// Soma o efeito, por mês, de todos os programas econômicos em vigor.
+export function efeitoDosProgramas(m: Mandato) {
+  const soma = { pib: 0, ipca: 0, selic: 0, desemprego: 0, primario: 0 };
+  for (const ativo of m.programas ?? []) {
+    const p = PROGRAMAS_ECONOMICOS.find((item) => item.id === ativo.id);
+    if (!p) continue;
+    soma.pib += p.pib ?? 0;
+    soma.ipca += p.ipca ?? 0;
+    soma.selic += p.selic ?? 0;
+    soma.desemprego += p.desemprego ?? 0;
+    soma.primario += p.primario ?? 0;
+  }
+  // Programas demais ao mesmo tempo disputam o mesmo dinheiro e a mesma mão de obra: cada um rende menos.
+  const fator = 1 / (1 + 0.2 * Math.max(0, (m.programas ?? []).length - 1));
+  return {
+    pib: soma.pib * fator,
+    ipca: soma.ipca * fator,
+    selic: soma.selic * fator,
+    desemprego: soma.desemprego * fator * 0.7,
+    primario: soma.primario,
+  };
+}
+
 function nivel(m: Mandato, area: string) {
   return m.orcamento[area] ?? 3;
 }
@@ -946,20 +1065,24 @@ function simularMes(m: Mandato) {
   const saldo = (custoDoOrcamentoDoMandato(m) - TETO_ORCAMENTO) / 100;
   const excesso = saldo > 0 ? saldo : saldo * 0.2;
   const obrasEmExecucao = m.obras.filter((o) => o.situacao === "andamento" && o.contrato).length;
+  const programas = efeitoDosProgramas(m);
 
   // Crescimento, inflação e juros andam devagar: as decisões demoram a aparecer.
-  const pibAlvo = 2 + (e.confianca - 50) * 0.03 - (e.selic - 9) * 0.12 + obrasEmExecucao * 0.06 + (e.investimento - 17) * 0.15 - e.carga * 0.15;
+  const pibAlvo = 2 + (e.confianca - 50) * 0.03 - (e.selic - 9) * 0.12 + obrasEmExecucao * 0.06 + (e.investimento - 17) * 0.15 - e.carga * 0.15 + programas.pib;
   e.pib = aproximar(e.pib, pibAlvo, 0.12) + ruido(m, 0.12);
-  const ipcaAlvo = 3.5 + (e.pib - 2) * 0.5 + (e.dolar - 5.3) * 0.6 - (e.selic - 10) * 0.25 + excesso * 0.5;
+  const ipcaAlvo = 3.5 + (e.pib - 2) * 0.5 + (e.dolar - 5.3) * 0.6 - (e.selic - 10) * 0.25 + excesso * 0.5 + programas.ipca;
   e.ipca = limitar(aproximar(e.ipca, ipcaAlvo, 0.1) + ruido(m, 0.08), -1, 40);
   // O Banco Central decide sozinho, a cada dois meses, para levar a inflação à meta.
   if (m.mes % 2 === 0) {
-    const selicAlvo = 9 + (e.ipca - 3) * 1.5;
+    const selicAlvo = 9 + (e.ipca - 3) * 1.5 + programas.selic;
     e.selic = limitar(Math.round(aproximar(e.selic, selicAlvo, 0.2) * 4) / 4, 2, 30);
   }
   e.dolar = limitar(e.dolar * (1 + (e.ipca - 3.5) * 0.001 - (e.confianca - 50) * 0.0004 + (e.primario < -1.5 ? 0.002 : 0) + ruido(m, 0.008)), 3, 12);
-  e.desemprego = limitar(e.desemprego - (e.pib - 2) * 0.03 + ruido(m, 0.04), 3, 20);
-  const primarioAlvo = -0.2 - excesso * 1.2 + e.carga * 0.3 + (e.pib - 2) * 0.1 - custoAnualDasObras(m) * 0.007;
+  // Perto do pleno emprego, cada ponto a menos custa muito mais.
+  let variacaoDoEmprego = -(e.pib - 2) * 0.03 + programas.desemprego;
+  if (variacaoDoEmprego < 0 && e.desemprego < 5.5) variacaoDoEmprego *= Math.max(0.12, (e.desemprego - 3.6) / 1.9);
+  e.desemprego = limitar(e.desemprego + variacaoDoEmprego + ruido(m, 0.04), 3, 20);
+  const primarioAlvo = -0.2 - excesso * 1.2 + e.carga * 0.3 + (e.pib - 2) * 0.1 - custoAnualDasObras(m) * 0.007 + programas.primario;
   e.primario = aproximar(e.primario, primarioAlvo, 0.08);
   e.divida = limitar(e.divida + ((e.selic - e.ipca - e.pib) * 0.55 - e.primario) / 12, 20, 200);
   const confiancaAlvo = 50 + e.primario * 6 - Math.max(0, e.divida - 85) * 0.8 - Math.max(0, e.ipca - 5) * 3;
@@ -1021,6 +1144,7 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
       noticiar(m, `Congresso converte em lei: ${mp.titulo}.`);
     } else {
       if (registro) registro.situacao = "Derrubada pelo Congresso";
+      if (mp.programaId) m.programas = (m.programas ?? []).filter((p) => p.id !== mp.programaId);
       aplicar(m, Object.fromEntries(Object.entries(mp.efeito).map(([k, v]) => [k, -v])));
       aplicar(m, { congresso: -2 });
       noticiar(m, `Congresso derruba a medida provisória: ${mp.titulo}.`);
@@ -1033,6 +1157,9 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     noticiar(m, item.texto);
   }
   m.pendentes = m.pendentes.filter((p) => p.mes > m.mes);
+
+  for (const ativo of (m.programas ?? []).filter((p) => p.fim <= m.mes)) noticiar(m, `Terminou o prazo do programa: ${ativo.nome}.`);
+  m.programas = (m.programas ?? []).filter((p) => p.fim > m.mes);
 
   avancarObras(m);
   simularMes(m);
@@ -1062,7 +1189,9 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   m.mes += 1;
   m.acoes = ACOES_POR_MES;
 
-  if (m.aprovacao < 22 && m.congresso < 42 && m.mes - m.impeachmentMes > 12 && m.mes > 6) {
+  const afrontas = d.flags.filter((f) => f === "afronta-stf").length;
+  const crise = (m.aprovacao < 22 && m.congresso < 42) || (afrontas >= 2 && m.congresso < 50 && m.aprovacao < 40);
+  if (crise && m.mes - m.impeachmentMes > 12 && m.mes > 6) {
     m.impeachmentMes = m.mes;
     m.pendencia = { tipo: "impeachment" };
     m.fase = "pendencia";
@@ -1077,6 +1206,11 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     m.fase = "pendencia";
     return m;
   }
+  const veto = (m.vetos ?? []).find((v) => v.mes <= m.mes);
+  if (veto) {
+    sessaoDoVeto(m, veto);
+    return m;
+  }
   if (d.pressao >= 78) {
     d.pressao -= 15;
     m.pendencia = { tipo: "carta", carta: CARTA_RUAS };
@@ -1087,6 +1221,26 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     m.pendencia = { tipo: "evento", evento: EVENTO_MESA };
     m.fase = "pendencia";
     return m;
+  }
+  // O Congresso também legisla: de vez em quando, um projeto chega para sanção ou veto.
+  const vistosDoCongresso = m.projetosDoCongresso ?? [];
+  const projetosNovos = PROJETOS_DO_CONGRESSO.filter((p) => !vistosDoCongresso.includes(p.id));
+  if (m.mes > 2 && projetosNovos.length > 0 && sortear(m) < 0.2) {
+    const projeto = projetosNovos[Math.floor(sortear(m) * projetosNovos.length)];
+    m.projetosDoCongresso = [...vistosDoCongresso, projeto.id];
+    m.pendencia = { tipo: "sancao", projeto };
+    m.fase = "pendencia";
+    return m;
+  }
+  if (m.mes > 3 && sortear(m) < 0.12) {
+    const livres = DECISOES_DO_STF.filter((s) => !m.eventosVistos.includes(s.id));
+    if (livres.length > 0) {
+      const decisao = livres[Math.floor(sortear(m) * livres.length)];
+      m.eventosVistos.push(decisao.id);
+      m.pendencia = { tipo: "stf", decisao };
+      m.fase = "pendencia";
+      return m;
+    }
   }
   // Quase todo mês alguém bate à sua porta com um problema.
   if (d.agenda.some((a) => a.mes <= m.mes) || sortear(m) < 0.72) {
@@ -1103,6 +1257,136 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     m.eventosVistos.push(evento.id);
     m.pendencia = { tipo: "evento", evento };
     m.fase = "pendencia";
+  }
+  return m;
+}
+
+function mostrarResultado(m: Mandato, resultado: Omit<Extract<Pendencia, { tipo: "resultado" }>, "tipo">) {
+  m.pendencia = { tipo: "resultado", ...resultado };
+  m.fase = "pendencia";
+}
+
+// Sancionar, vetar uma parte ou vetar tudo. O veto volta ao Congresso, que pode derrubá-lo.
+export function sancionar(original: Mandato, escolha: "sancionar" | "parcial" | "vetar"): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "sancao") return m;
+  const { projeto } = m.pendencia;
+  if (escolha === "sancionar") {
+    aplicar(m, projeto.sancionar);
+    aplicar(m, { congresso: 1 + projeto.interesse * 2 });
+    noticiar(m, `Presidente sanciona: ${projeto.nome}.`);
+  } else {
+    const parcial = escolha === "parcial";
+    if (parcial) aplicar(m, Object.fromEntries(Object.entries(projeto.sancionar).map(([k, v]) => [k, v / 2])));
+    const peso = parcial ? 0.5 : 1;
+    aplicar(m, {
+      congresso: -(2 + projeto.interesse * 5) * peso,
+      aprovacao: (projeto.popular > 0.5 ? -(projeto.popular - 0.5) * 8 : (0.5 - projeto.popular) * 4) * peso,
+    });
+    m.vetos = [...(m.vetos ?? []), { id: projeto.id, mes: m.mes + 2, parcial }];
+    noticiar(m, `Presidente veta ${parcial ? "parte do projeto" : "o projeto"}: ${projeto.nome}. O Congresso vai analisar o veto.`);
+  }
+  m.pendencia = null;
+  m.fase = "gestao";
+  return m;
+}
+
+function sessaoDoVeto(m: Mandato, veto: { id: string; mes: number; parcial: boolean }) {
+  m.vetos = (m.vetos ?? []).filter((v) => v !== veto);
+  const projeto = PROJETOS_DO_CONGRESSO.find((p) => p.id === veto.id);
+  if (!projeto) return;
+  const chance = (0.2 + projeto.interesse * 0.35 + projeto.popular * 0.15 + (50 - m.congresso) / 120) * (veto.parcial ? 0.75 : 1);
+  const forca = chance + (sortear(m) - 0.5) * 0.35;
+  const deputados = Math.round(Math.min(513, Math.max(0, 513 * (0.22 + forca * 0.5))));
+  const senadores = Math.round(Math.min(81, Math.max(0, 81 * (0.22 + forca * 0.5) + (sortear(m) - 0.5) * 6)));
+  const derrubado = deputados >= 257 && senadores >= 41;
+  if (derrubado) {
+    const parte = veto.parcial ? 0.5 : 1;
+    aplicar(m, Object.fromEntries(Object.entries(projeto.sancionar).map(([k, v]) => [k, v * parte])));
+    aplicar(m, { congresso: -2, aprovacao: -1 });
+    noticiar(m, `Congresso derruba o veto: ${projeto.nome} vira lei.`);
+  } else {
+    aplicar(m, { congresso: 1 });
+    noticiar(m, `Veto mantido: ${projeto.nome}.`);
+  }
+  mostrarResultado(m, {
+    sobretitulo: "Sessão do Congresso · Análise do veto",
+    titulo: derrubado ? "O Congresso derrubou o seu veto" : "O seu veto foi mantido",
+    texto: `${projeto.nome}. Para derrubar um veto são precisos 257 deputados e 41 senadores.`,
+    cena: derrubado ? "rejeitado" : "aprovado",
+    placar: [
+      { rotulo: "Deputados pela derrubada", sim: deputados, nao: 513 - deputados },
+      { rotulo: "Senadores pela derrubada", sim: senadores, nao: 81 - senadores },
+    ],
+  });
+}
+
+export function decidirSobreSTF(original: Mandato, escolha: "cumprir" | "recorrer" | "afrontar"): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "stf") return m;
+  const { decisao } = m.pendencia;
+  if (escolha === "cumprir") {
+    aplicar(m, decisao.cumprir);
+    noticiar(m, `Governo cumpre a decisão: ${decisao.titulo}.`);
+  } else if (escolha === "recorrer") {
+    // O recurso pode mudar parte da decisão, mas no fim o governo cumpre o que o plenário decidir.
+    const venceu = sortear(m) < 0.35;
+    aplicar(m, venceu ? decisao.recorrer : decisao.cumprir);
+    noticiar(m, venceu ? `Recurso do governo ameniza a decisão: ${decisao.titulo}.` : `STF mantém a decisão: ${decisao.titulo}.`);
+  } else {
+    aplicar(m, AFRONTAR_STF);
+    m.drama.flags.push("afronta-stf");
+    noticiar(m, "Crise entre os Poderes: o governo diz que não vai cumprir a decisão do STF.");
+  }
+  m.pendencia = null;
+  m.fase = "gestao";
+  return m;
+}
+
+// A tentativa de golpe tem dois momentos. No fim, quase sempre fracassa, e o mandato acaba.
+export function avancarGolpe(original: Mandato, opcao: number | "recuar"): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "golpe") return m;
+  if (opcao === "recuar") {
+    aplicar(m, { "s.confianca": -4, aprovacao: -3, congresso: -5 });
+    noticiar(m, "O presidente recua. A reunião com os comandantes vira escândalo.");
+    m.drama.flags.push("afronta-stf");
+    m.pendencia = null;
+    m.fase = "gestao";
+    return m;
+  }
+  const passo = PASSOS_DO_GOLPE[m.pendencia.passo];
+  const escolha = passo.opcoes[opcao] ?? passo.opcoes[0];
+  aplicar(m, escolha.efeito);
+  const chance = Math.max(0.01, Math.min(0.3, m.pendencia.chance + escolha.chance));
+  if (m.pendencia.passo + 1 < PASSOS_DO_GOLPE.length) {
+    m.pendencia = { tipo: "golpe", passo: m.pendencia.passo + 1, chance };
+    return m;
+  }
+  if (sortear(m) < chance) {
+    m.golpe = "venceu";
+    aplicar(m, { "e.confianca": -35, "e.dolar": 2.5, "s.confianca": -40, aprovacao: -15, pressao: 30 });
+    for (const parceiro of Object.keys(m.relacoes)) m.relacoes[parceiro] = limitar(m.relacoes[parceiro] - 30);
+    noticiar(m, "Ruptura institucional: o Brasil está sob um regime de exceção.");
+    mostrarResultado(m, {
+      sobretitulo: "Ruptura institucional",
+      titulo: "O golpe foi adiante",
+      texto:
+        "Tanques nas ruas, Congresso fechado e o país isolado. Sanções chegam de todos os lados, o dinheiro foge e a história já começou a escrever o seu nome do lado errado. A partida termina aqui.",
+      cena: "tanques",
+    });
+  } else {
+    m.golpe = "fracassou";
+    m.cassado = true;
+    aplicar(m, { "s.confianca": 6, aprovacao: -20 });
+    noticiar(m, "A tentativa de golpe fracassa. O presidente é afastado.");
+    mostrarResultado(m, {
+      sobretitulo: "A democracia resistiu",
+      titulo: "A tentativa de golpe fracassou",
+      texto:
+        "Os comandantes recusaram a ordem. O Congresso afastou você no mesmo dia, e o caso foi para a Justiça como crime contra o Estado Democrático de Direito.",
+      cena: "tribunal",
+    });
   }
   return m;
 }
@@ -1168,7 +1452,7 @@ export function indicar(original: Mandato, contexto: Contexto, escolhido: OpcaoI
 export function fecharPendencia(original: Mandato): Mandato {
   const m = structuredClone(original);
   m.pendencia = null;
-  m.fase = m.cassado ? "fim" : "gestao";
+  m.fase = m.cassado || m.golpe ? "fim" : "gestao";
   return m;
 }
 

@@ -153,7 +153,7 @@ export type Campanha = {
   debate: Debate | null;
   pessoaReal?: boolean;
   carta?: string | null;
-  cartaResposta?: { quem: string; resposta: string; mudancas: { texto: string; bom: boolean }[] } | null;
+  cartaResposta?: { quem: string; resposta: string; mudancas: { texto: string; bom: boolean; sobe?: boolean }[] } | null;
   cartasVistas?: string[];
 };
 
@@ -462,7 +462,7 @@ function montarPerguntas(c: Campanha, candidato: Candidato, quantidade: number) 
   c.perguntasFeitas.push(...selecionadas.map((p) => p.id));
   return selecionadas.map((pergunta) => ({
     pergunta,
-    segundos: 45 + Math.floor(sortear(c) * 16),
+    segundos: 60 + Math.floor(sortear(c) * 31),
   }));
 }
 

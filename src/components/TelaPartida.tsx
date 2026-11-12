@@ -18,7 +18,7 @@ function trilhaDaPartida(partida: Partida): NomeTrilha {
   if (partida.etapa !== "mandato" || !partida.mandato) return "abertura";
   const { pendencia, drama, fase } = partida.mandato;
   if (fase === "fim") return "abertura";
-  const urgente = pendencia?.tipo === "impeachment" || (pendencia?.tipo === "carta" && Boolean(pendencia.carta.urgente));
+  const urgente = pendencia?.tipo === "impeachment" || pendencia?.tipo === "golpe" || (pendencia?.tipo === "carta" && Boolean(pendencia.carta.urgente));
   return urgente || drama.pressao >= 60 ? "crise" : "mandato";
 }
 

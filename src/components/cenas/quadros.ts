@@ -409,6 +409,59 @@ function telefone(c: C, x: number, y: number, tremor: number) {
   c.restore();
 }
 
+function documento(c: C, t: number, titulo: string, assina: boolean) {
+    c.save();
+    aproximar(c, 1.05 + (t / DURACAO) * 0.08, 320, 200);
+    ceu(c, "#3b2616", "#22150c");
+    brilho(c, 200, 90, 280, "#ffd79a", 0.4);
+    c.save();
+    c.translate(320, 182);
+    c.rotate(-0.05);
+    c.fillStyle = "#ece6d4";
+    c.fillRect(-160, -142, 320, 286);
+    c.fillStyle = "#9d9684";
+    for (let i = 0; i < 8; i += 1) c.fillRect(-126, -92 + i * 19, 252 - (i % 3) * 34, 4);
+    c.fillStyle = "#1a1a1a";
+    c.font = fonte(26);
+    c.textAlign = "center";
+    c.fillText(titulo, 0, -112);
+    c.fillStyle = "#555";
+    c.fillRect(-100, 94, 200, 2);
+    const p = assina ? trecho(t, 0.7, 2.7) : 0;
+    const parada = assina ? 0 : Math.sin(t * 2.2) * 8;
+    c.strokeStyle = "#143a7a";
+    c.lineWidth = 2.6;
+    c.lineCap = "round";
+    c.beginPath();
+    let px = -92;
+    let py = 88;
+    const total = Math.floor(p * 46);
+    for (let i = 0; i <= total; i += 1) {
+      px = -92 + i * 4;
+      py = 84 + Math.sin(i * 0.72) * (14 - i * 0.2) + Math.sin(i * 0.21) * 6;
+      c.lineTo(px, py);
+    }
+    c.stroke();
+    if (!assina || t < 2.9) {
+      c.fillStyle = "#16181c";
+      c.save();
+      c.translate(px + parada, py - 18 * (assina ? 0 : 1) + parada * 0.4);
+      c.rotate(0.7);
+      c.fillRect(-4, -150, 8, 136);
+      c.fillStyle = AMARELO;
+      c.fillRect(-4, -96, 8, 5);
+      c.fillStyle = "#16181c";
+      c.beginPath();
+      c.moveTo(-4, -14);
+      c.lineTo(4, -14);
+      c.lineTo(0, 0);
+      c.fill();
+      c.restore();
+    }
+    c.restore();
+    c.restore();
+}
+
 const CENARIOS: Record<TipoCena, (c: C, t: number) => void> = {
   gabinete(c, t) {
     c.save();
@@ -1177,56 +1230,12 @@ const CENARIOS: Record<TipoCena, (c: C, t: number) => void> = {
   },
 
   assinatura(c, t) {
-    c.save();
-    aproximar(c, 1.05 + (t / DURACAO) * 0.08, 320, 200);
-    ceu(c, "#3b2616", "#22150c");
-    brilho(c, 200, 90, 280, "#ffd79a", 0.4);
-    c.save();
-    c.translate(320, 182);
-    c.rotate(-0.05);
-    c.fillStyle = "#ece6d4";
-    c.fillRect(-160, -142, 320, 286);
-    c.fillStyle = "#9d9684";
-    for (let i = 0; i < 8; i += 1) c.fillRect(-126, -92 + i * 19, 252 - (i % 3) * 34, 4);
-    c.fillStyle = "#1a1a1a";
-    c.font = fonte(26);
-    c.textAlign = "center";
-    c.fillText("NOMEAÇÃO", 0, -112);
-    c.fillStyle = "#555";
-    c.fillRect(-100, 94, 200, 2);
-    const p = trecho(t, 0.7, 2.7);
-    c.strokeStyle = "#143a7a";
-    c.lineWidth = 2.6;
-    c.lineCap = "round";
-    c.beginPath();
-    let px = -92;
-    let py = 88;
-    const total = Math.floor(p * 46);
-    for (let i = 0; i <= total; i += 1) {
-      px = -92 + i * 4;
-      py = 84 + Math.sin(i * 0.72) * (14 - i * 0.2) + Math.sin(i * 0.21) * 6;
-      c.lineTo(px, py);
-    }
-    c.stroke();
-    if (t < 2.9) {
-      c.fillStyle = "#16181c";
-      c.save();
-      c.translate(px, py);
-      c.rotate(0.7);
-      c.fillRect(-4, -150, 8, 136);
-      c.fillStyle = AMARELO;
-      c.fillRect(-4, -96, 8, 5);
-      c.fillStyle = "#16181c";
-      c.beginPath();
-      c.moveTo(-4, -14);
-      c.lineTo(4, -14);
-      c.lineTo(0, 0);
-      c.fill();
-      c.restore();
-    }
-    c.restore();
-    c.restore();
+    documento(c, t, "NOMEAÇÃO", true);
     carimbo(c, "NOMEADO", "#ff7b6c", t, 3.3);
+  },
+
+  lei(c, t) {
+    documento(c, t, "PROJETO DE LEI", false);
   },
 
   comicio(c, t) {
@@ -1468,6 +1477,51 @@ const CENARIOS: Record<TipoCena, (c: C, t: number) => void> = {
         circulo(c, 322 + (acaso(i) - 0.5) * 70, 130 - vida * 34, 1.4 + vida * 2.4);
       }
     }
+    c.restore();
+  },
+
+  tanques(c, t) {
+    c.save();
+    aproximar(c, 1.02 + (t / DURACAO) * 0.08, 320, 240);
+    ceu(c, "#06090f", "#121a24", "#2a2a2e");
+    for (const [x, fase] of [[120, 0], [520, 1.7]] as const) {
+      const a = Math.sin(t * 0.9 + fase) * 0.35 - PI / 2;
+      const g = c.createLinearGradient(x, 300, x + Math.cos(a) * 320, 300 + Math.sin(a) * 320);
+      g.addColorStop(0, "rgba(220,230,255,0.32)");
+      g.addColorStop(1, "rgba(220,230,255,0)");
+      c.fillStyle = g;
+      c.beginPath();
+      c.moveTo(x, 300);
+      c.lineTo(x + Math.cos(a - 0.09) * 340, 300 + Math.sin(a - 0.09) * 340);
+      c.lineTo(x + Math.cos(a + 0.09) * 340, 300 + Math.sin(a + 0.09) * 340);
+      c.fill();
+    }
+    congresso(c, 320, 250, 0.95, "#0c121a", 0.5);
+    ministerios(c, 250, "#0e1520");
+    chao(c, 248, "#151619");
+    fumaca(c, 160, 300, t, "#3a3530", 10, 60);
+    for (let i = 0; i < 3; i += 1) {
+      const x = -260 + i * 210 + t * 70;
+      const y = 300 + i * 14;
+      const e = 0.85 + i * 0.12;
+      c.fillStyle = "#2c3324";
+      c.beginPath();
+      c.roundRect(x, y - 34 * e, 150 * e, 30 * e, 6 * e);
+      c.fill();
+      c.fillStyle = "#363f2c";
+      c.beginPath();
+      c.roundRect(x + 38 * e, y - 54 * e, 62 * e, 22 * e, 5 * e);
+      c.fill();
+      c.fillRect(x + 96 * e, y - 47 * e, 70 * e, 6 * e);
+      c.fillStyle = "#0d0f0b";
+      c.beginPath();
+      c.roundRect(x - 4 * e, y - 10 * e, 158 * e, 16 * e, 8 * e);
+      c.fill();
+      c.fillStyle = "#2a2e26";
+      for (let k = 0; k < 7; k += 1) circulo(c, x + 8 * e + k * 23 * e, y - 2 * e, 5 * e);
+      brilho(c, x + 152 * e, y - 22 * e, 34 * e, "#fff3c4", 0.7);
+    }
+    multidao(c, 330, 30, 14, "#060708", t, 47);
     c.restore();
   },
 
