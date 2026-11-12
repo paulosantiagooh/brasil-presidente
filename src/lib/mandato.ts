@@ -8,6 +8,7 @@ import { AREAS, atributosDe, calcularBalanco, MINISTERIOS, custoDoOrcamento, est
 import { POLITICOS, semAcento, type Pessoa } from "./pessoas";
 import { noEstado } from "./estados";
 import { CRISES, desfechoDaCrise, NOME_DESFECHO } from "./crises";
+import { montarDialogo, type IdDialogo } from "./dialogos";
 import { INDICADOR_DA_PASTA, PRAZO_DA_META, type MetaDoMinistro } from "./metas-ministros";
 import {
   AFRONTAR_STF,
@@ -162,6 +163,7 @@ export type Pendencia =
   | { tipo: "stf"; decisao: DecisaoDoSTF }
   | { tipo: "golpe"; passo: number; chance: number }
   | { tipo: "crise" }
+  | { tipo: "dialogo"; id: IdDialogo; contexto: string | null }
   | { tipo: "data-civica"; data: "independencia" | "bandeira" }
   | { tipo: "meta-ministro"; ministerio: string; texto: string }
   | { tipo: "crise-resultado"; titulo: string; texto: string; antes: number; depois: number; reacoes: { quem: string; texto: string }[]; desfecho: Desfecho | null; saiu: string | null }
@@ -1376,6 +1378,14 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     m.fase = "pendencia";
     return m;
   }
+  // Cenas com diálogo: cada uma aparece uma vez por mandato, quando faz sentido.
+  const dialogo = proximoDialogo(m);
+  if (dialogo) {
+    d.flags.push(`dialogo-${dialogo.id}`);
+    m.pendencia = { tipo: "dialogo", ...dialogo };
+    m.fase = "pendencia";
+    return m;
+  }
   // O Congresso também legisla: de vez em quando, um projeto chega para sanção ou veto.
   const vistosDoCongresso = m.projetosDoCongresso ?? [];
   const projetosNovos = PROJETOS_DO_CONGRESSO.filter((p) => !vistosDoCongresso.includes(p.id));
@@ -1708,6 +1718,35 @@ export function responderDataCivica(original: Mandato, opcao: number): Mandato {
   const escolha = data.opcoes[opcao] ?? data.opcoes[0];
   aplicar(m, escolha.efeito);
   noticiar(m, `${data.titulo}: ${escolha.texto.charAt(0).toLowerCase()}${escolha.texto.slice(1)}`);
+  m.pendencia = null;
+  m.fase = "gestao";
+  return m;
+}
+
+function proximoDialogo(m: Mandato): { id: IdDialogo; contexto: string | null } | null {
+  const visto = (id: IdDialogo) => m.drama.flags.includes(`dialogo-${id}`);
+  if (!visto("reuniao") && m.mes >= 4) return { id: "reuniao", contexto: null };
+  const recente = (m.decisoes ?? []).find((d) => d.mes === m.mes - 1);
+  if (!visto("entrevista") && m.mes >= 6 && recente) return { id: "entrevista", contexto: recente.texto };
+  const ultimaCrise = (m.crises ?? []).at(-1);
+  if (!visto("pronunciamento") && (ultimaCrise || m.drama.pressao >= 65)) {
+    return {
+      id: "pronunciamento",
+      contexto: ultimaCrise
+        ? `O país ainda sente os efeitos da crise: ${ultimaCrise.nome.toLowerCase()}.`
+        : "As ruas estão tensas, e a temperatura política subiu nas últimas semanas.",
+    };
+  }
+  return null;
+}
+
+export function responderDialogo(original: Mandato, opcao: number): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "dialogo") return m;
+  const dialogo = montarDialogo(m.pendencia.id, m.pendencia.contexto);
+  const escolha = dialogo.opcoes[opcao] ?? dialogo.opcoes[0];
+  aplicar(m, escolha.efeito);
+  noticiar(m, `${dialogo.titulo} (${escolha.texto.replace(/\.$/, "")})`);
   m.pendencia = null;
   m.fase = "gestao";
   return m;

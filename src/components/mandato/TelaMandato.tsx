@@ -22,6 +22,7 @@ import {
   promessasDoMandato,
   responderCarta,
   responderEvento,
+  responderDialogo,
   INDICADORES_DA_DECISAO,
   responderDataCivica,
   DATAS_CIVICAS,
@@ -66,6 +67,8 @@ import { PASSOS_DO_GOLPE } from "@/lib/poderes";
 import { NOME_DESFECHO } from "@/lib/crises";
 import { GabineteDeCrise, ResultadoDaCrise } from "./GabineteDeCrise";
 import { Posse } from "./Posse";
+import { CenaDialogo } from "./CenaDialogo";
+import { montarDialogo } from "@/lib/dialogos";
 import { Bandeira } from "../Bandeira";
 import { Hino } from "../Hino";
 import { CartaDrama, RespostaCarta } from "./CartaDrama";
@@ -486,6 +489,16 @@ function TelaPendencia(props: {
           </button>
         </div>
       </section>
+    );
+  }
+  if (pendencia.tipo === "dialogo") {
+    return (
+      <CenaDialogo
+        key={pendencia.id}
+        dialogo={montarDialogo(pendencia.id, pendencia.contexto)}
+        mes={nomeDoMes(mandato.mes)}
+        aoEscolher={(indice) => atualizar((m) => responderDialogo(m, indice))}
+      />
     );
   }
   if (pendencia.tipo === "data-civica") {
