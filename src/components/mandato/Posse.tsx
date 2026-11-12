@@ -23,7 +23,7 @@ export function Posse({ nome, ano, reeleito, aoTerminar }: { nome: string; ano: 
       id: "hino",
       cena: "hasteamento",
       titulo: "Hino Nacional",
-      texto: "Todos de pé, em silêncio. A Bandeira sobe no mastro diante do Palácio do Planalto, e o Hino Nacional é tocado inteiro, como manda a lei.",
+      texto: "Todos de pé, em silêncio. A Bandeira sobe no mastro diante do Palácio do Planalto, e o Hino Nacional é tocado. Se preferir, você pode pular.",
     },
     ...(reeleito
       ? []
@@ -102,14 +102,13 @@ export function Posse({ nome, ano, reeleito, aoTerminar }: { nome: string; ano: 
         <button
           type="button"
           className="botao botao-destaque"
-          disabled={etapa.id === "hino" && hinoTocando}
           onClick={() => {
             if (ultima) aoTerminar();
             else setIndice(indice + 1);
             window.scrollTo({ top: 0 });
           }}
         >
-          {ultima ? "Começar a governar" : etapa.id === "hino" && hinoTocando ? "Aguarde o fim do Hino" : "Continuar"}
+          {ultima ? "Começar a governar" : etapa.id === "hino" && hinoTocando ? "Pular o Hino" : "Continuar"}
         </button>
       </footer>
     </section>

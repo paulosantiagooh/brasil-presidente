@@ -5,7 +5,7 @@ export const HINOS: Record<IdHino, { nome: string; arquivo: string; credito: str
   nacional: {
     nome: "Hino Nacional Brasileiro",
     arquivo: "hino-nacional.mp3",
-    credito: "Música de Francisco Manuel da Silva, letra de Osório Duque Estrada. Execução integral.",
+    credito: "Música de Francisco Manuel da Silva, letra de Osório Duque Estrada.",
     // A Lei 5.700/1971 manda executar o Hino Nacional sempre inteiro.
     inteiro: true,
   },
