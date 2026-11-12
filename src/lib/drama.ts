@@ -390,6 +390,8 @@ export const CONQUISTAS: { id: string; nome: string; texto: string }[] = [
   { id: "primeira-lei", nome: "Primeira vitória", texto: "Aprovou o primeiro projeto no Congresso." },
   { id: "emenda", nome: "Mudou a Constituição", texto: "Aprovou uma emenda à Constituição." },
   { id: "sangue-frio", nome: "Sangue frio", texto: "Decidiu 5 crises urgentes a tempo." },
+  { id: "crise-contida", nome: "Mão firme", texto: "Conteve uma crise do gabinete de crise." },
+  { id: "equipe-afinada", nome: "Equipe afinada", texto: "Três ministérios cumpriram as metas." },
   { id: "tres-metas", nome: "Entrega o que promete", texto: "Cumpriu 3 missões." },
   { id: "acima-de-60", nome: "Nos braços do povo", texto: "Chegou a 60% de aprovação." },
   { id: "abaixo-de-25", nome: "Fundo do poço", texto: "Caiu abaixo de 25% de aprovação." },

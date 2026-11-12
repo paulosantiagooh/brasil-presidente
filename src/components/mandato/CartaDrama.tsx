@@ -30,7 +30,7 @@ export function Rosto({ quem }: { quem: string }) {
   );
 }
 
-function Relogio({ segundos, aoAcabar }: { segundos: number; aoAcabar: () => void }) {
+export function Relogio({ segundos, aoAcabar }: { segundos: number; aoAcabar: () => void }) {
   const [restante, setRestante] = useState(segundos);
   const acabar = useRef(aoAcabar);
 

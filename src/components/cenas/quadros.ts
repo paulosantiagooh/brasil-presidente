@@ -1,3 +1,4 @@
+import { BANDEIRA, desenharBandeira } from "@/lib/bandeira";
 import type { TipoCena } from "@/lib/cenas";
 
 export const DURACAO = 5;
@@ -13,7 +14,7 @@ type C = CanvasRenderingContext2D;
 const VERDE = "#0f8a56";
 const AMARELO = "#f2c14e";
 const AZUL = "#1f4fa8";
-const TURQUESA = "#2dd4bf";
+const TURQUESA = "#2fd37c";
 
 // Tudo depende só do tempo: qualquer quadro pode ser desenhado de novo, igual, em qualquer ordem.
 function acaso(n: number) {
@@ -168,28 +169,41 @@ function multidao(c: C, y: number, n: number, tam: number, cor: string, t: numbe
   }
 }
 
-function bandeira(c: C, x: number, y: number, l: number, h: number, t: number) {
-  const onda = (u: number) => Math.sin(u * 5 - t * 5) * h * 0.09 * u;
-  c.strokeStyle = "#20282b";
-  c.lineWidth = 2.5;
-  linha(c, x, y - 4, x, y + h * 2.4);
-  const passos = 16;
-  c.fillStyle = VERDE;
-  c.beginPath();
-  for (let i = 0; i <= passos; i += 1) c.lineTo(x + (i / passos) * l, y + onda(i / passos));
-  for (let i = passos; i >= 0; i -= 1) c.lineTo(x + (i / passos) * l, y + h + onda(i / passos));
-  c.closePath();
-  c.fill();
-  c.fillStyle = AMARELO;
-  c.beginPath();
-  c.moveTo(x + l * 0.08, y + h / 2 + onda(0.08));
-  c.lineTo(x + l * 0.5, y + h * 0.1 + onda(0.5));
-  c.lineTo(x + l * 0.92, y + h / 2 + onda(0.92));
-  c.lineTo(x + l * 0.5, y + h * 0.9 + onda(0.5));
-  c.closePath();
-  c.fill();
-  c.fillStyle = AZUL;
-  circulo(c, x + l * 0.5, y + h / 2 + onda(0.5), h * 0.22);
+let textura: HTMLCanvasElement | null = null;
+
+// A bandeira é desenhada uma vez, inteira e nas proporções da lei, e depois ondula em tiras.
+function texturaDaBandeira() {
+  if (textura) return textura;
+  const tela = document.createElement("canvas");
+  tela.width = BANDEIRA.largura * 3;
+  tela.height = BANDEIRA.altura * 3;
+  const c = tela.getContext("2d");
+  if (c) {
+    c.scale(3, 3);
+    desenharBandeira(c);
+  }
+  textura = tela;
+  return tela;
+}
+
+function bandeira(c: C, x: number, y: number, l: number, _h: number, t: number, mastro = true) {
+  const h = l * 0.7;
+  const onda = (u: number) => Math.sin(u * 5 - t * 5) * h * 0.08 * u;
+  if (mastro) {
+    c.strokeStyle = "#20282b";
+    c.lineWidth = 2.5;
+    linha(c, x, y - 4, x, y + h * 3);
+  }
+  const imagem = texturaDaBandeira();
+  const tiras = 28;
+  for (let i = 0; i < tiras; i += 1) {
+    const u = i / tiras;
+    const largura = imagem.width / tiras;
+    c.drawImage(imagem, i * largura, 0, largura + 1, imagem.height, x + u * l, y + onda(u), l / tiras + 0.7, h);
+    const sombra = Math.cos(u * 5 - t * 5) * u;
+    c.fillStyle = sombra > 0 ? `rgba(255,255,255,${sombra * 0.12})` : `rgba(0,0,0,${-sombra * 0.22})`;
+    c.fillRect(x + u * l, y + onda(u), l / tiras + 0.7, h);
+  }
 }
 
 function fumaca(c: C, x: number, y: number, t: number, cor: string, n = 8, tamanho = 40) {
@@ -1242,7 +1256,7 @@ const CENARIOS: Record<TipoCena, (c: C, t: number) => void> = {
     c.save();
     aproximar(c, 1.02 + (t / DURACAO) * 0.09, 320, 170);
     ceu(c, "#0a0f24", "#1a1f4a", "#3a2460");
-    const luzes = [["#2dd4bf", 110], ["#f2c14e", 320], ["#ff5a7a", 530]] as const;
+    const luzes = [["#2fd37c", 110], ["#f2c14e", 320], ["#ff5a7a", 530]] as const;
     luzes.forEach(([cor, x], i) => {
       const a = Math.sin(t * 1.4 + i * 2) * 0.5;
       c.save();
@@ -1357,7 +1371,7 @@ const CENARIOS: Record<TipoCena, (c: C, t: number) => void> = {
       c.beginPath();
       c.roundRect(246, y, 148, 82, 8);
       c.fill();
-      c.fillStyle = ["#2dd4bf", "#f2a14c", "#ff4f7f", "#6f8cf5"][(i + 5 + Math.floor((t * 118) / 92)) % 4];
+      c.fillStyle = ["#2fd37c", "#f2a14c", "#ff4f7f", "#6f8cf5"][(i + 5 + Math.floor((t * 118) / 92)) % 4];
       circulo(c, 262, y + 16, 8);
       c.fillStyle = "#5b5b78";
       c.fillRect(276, y + 10, 82, 5);
@@ -1522,6 +1536,151 @@ const CENARIOS: Record<TipoCena, (c: C, t: number) => void> = {
       brilho(c, x + 152 * e, y - 22 * e, 34 * e, "#fff3c4", 0.7);
     }
     multidao(c, 330, 30, 14, "#060708", t, 47);
+    c.restore();
+  },
+
+  desfile(c, t) {
+    c.save();
+    aproximar(c, 1.03 + (t / DURACAO) * 0.06, 330, 230);
+    ceu(c, "#2f7fd0", "#86c6ec", "#f1f4e4");
+    c.fillStyle = "rgba(255,255,255,0.8)";
+    for (let i = 0; i < 4; i += 1) {
+      c.beginPath();
+      c.ellipse(((i * 190 + t * 8) % (L + 200)) - 100, 50 + i * 15, 60, 10, 0, 0, PI * 2);
+      c.fill();
+    }
+    congresso(c, 330, 196, 0.62, "#e9ece8");
+    ministerios(c, 196, "#d9dfd8");
+    chao(c, 194, "#9fae8a");
+    c.fillStyle = "#6a6e6c";
+    c.beginPath();
+    c.moveTo(250, 196);
+    c.lineTo(410, 196);
+    c.lineTo(560, A + 40);
+    c.lineTo(100, A + 40);
+    c.fill();
+    multidao(c, 214, 34, 8, "#1f3a2a", t, 61);
+    multidao(c, 236, 20, 11, "#183024", t, 67);
+    bandeira(c, 120, 150, 54, 0, t);
+    bandeira(c, 506, 146, 54, 0, t + 1.2);
+    const avanco = trecho(t, 0, DURACAO) * 130;
+    // Escolta a cavalo, com uniforme de gala.
+    const cavalo = (x: number, y: number, e: number, fase: number) => {
+      const passo = Math.sin(t * 7 + fase);
+      c.fillStyle = "#3b2516";
+      c.beginPath();
+      c.ellipse(x, y - 26 * e, 22 * e, 10 * e, 0, 0, PI * 2);
+      c.fill();
+      c.beginPath();
+      c.moveTo(x + 16 * e, y - 30 * e);
+      c.lineTo(x + 30 * e, y - 48 * e);
+      c.lineTo(x + 38 * e, y - 44 * e);
+      c.lineTo(x + 24 * e, y - 24 * e);
+      c.fill();
+      c.strokeStyle = "#3b2516";
+      c.lineWidth = 3.4 * e;
+      for (const [dx, d] of [[-14, passo], [-8, -passo], [10, -passo], [16, passo]]) linha(c, x + dx * e, y - 20 * e, x + (dx + d * 4) * e, y);
+      c.fillStyle = "#e7e3da";
+      c.fillRect(x - 5 * e, y - 50 * e, 10 * e, 18 * e);
+      c.fillStyle = "#b8202a";
+      c.fillRect(x - 5 * e, y - 44 * e, 10 * e, 5 * e);
+      c.fillStyle = "#d9b45a";
+      circulo(c, x, y - 54 * e, 4.4 * e);
+      c.fillStyle = "#1b1b1b";
+      c.fillRect(x - 1 * e, y - 66 * e, 2 * e, 10 * e);
+    };
+    c.save();
+    c.translate(-40, -42);
+    for (let i = 0; i < 3; i += 1) cavalo(150 + avanco + i * 34, 300 + (i % 2) * 8, 1, i);
+    const carro = 270 + avanco;
+    c.fillStyle = "#121417";
+    c.beginPath();
+    c.roundRect(carro, 278, 150, 34, 10);
+    c.fill();
+    c.fillRect(carro + 22, 268, 104, 12);
+    c.fillStyle = "#c8ccd0";
+    c.fillRect(carro + 2, 300, 146, 3);
+    c.fillStyle = "#050505";
+    circulo(c, carro + 30, 314, 12);
+    circulo(c, carro + 122, 314, 12);
+    pessoa(c, carro + 76, 278, 56, "#151a22", Math.sin(t * 4));
+    c.strokeStyle = BANDEIRA.verde;
+    c.lineWidth = 4;
+    linha(c, carro + 69, 239, carro + 82, 256);
+    c.strokeStyle = BANDEIRA.amarelo;
+    c.lineWidth = 1.6;
+    linha(c, carro + 69, 239, carro + 82, 256);
+    for (let i = 0; i < 3; i += 1) cavalo(460 + avanco + i * 34, 300 + (i % 2) * 8, 1, i + 3);
+    c.restore();
+    multidao(c, 328, 26, 18, "#0d1a12", t, 71);
+    c.restore();
+    confete(c, t, 60, [BANDEIRA.verde, BANDEIRA.amarelo, BANDEIRA.azul, "#ffffff"]);
+  },
+
+  faixa(c, t) {
+    c.save();
+    aproximar(c, 1.12 + (t / DURACAO) * 0.1, 320, 200);
+    c.translate(0, -48);
+    ceu(c, "#2f7fd0", "#9fd2f0");
+    palacio(c, 320, 300, 1.5, "#f4f4ee", "#3b6676");
+    chao(c, 296, "#e2e2da");
+    const sai = 250;
+    const entra = 392;
+    pessoa(c, sai, 320, 150, "#1a1f27");
+    pessoa(c, entra, 320, 150, "#141920");
+    const p = trecho(t, 0.9, 3.3);
+    // A faixa sai do ombro de um e chega ao ombro do outro.
+    const x = sai + (entra - sai) * p;
+    const arco = Math.sin(p * PI) * 26;
+    c.save();
+    c.translate(x, 228 - arco);
+    c.rotate(0.85 - p * 0.15);
+    for (const [cor, largura] of [[BANDEIRA.verde, 18], [BANDEIRA.amarelo, 7]] as const) {
+      c.fillStyle = cor;
+      c.fillRect(-largura / 2, -46, largura, 92);
+    }
+    c.fillStyle = "#d9b45a";
+    circulo(c, 0, 38, 6);
+    c.restore();
+    c.strokeStyle = "#1a1f27";
+    c.lineWidth = 9;
+    c.lineCap = "round";
+    linha(c, sai + 14, 222, sai + 20 + p * 40, 232 - arco);
+    linha(c, entra - 14, 222, entra - 20 - (1 - p) * 30, 232 - arco);
+    c.restore();
+    if (t > 3.3) {
+      brilho(c, 320, 200, 260, "#fff6c8", Math.max(0, 0.35 - (t - 3.3) * 0.2));
+      confete(c, t - 3.3, 70, [BANDEIRA.verde, BANDEIRA.amarelo, BANDEIRA.azul, "#ffffff"]);
+    }
+  },
+
+  hasteamento(c, t) {
+    c.save();
+    aproximar(c, 1 + (t / DURACAO) * 0.07, 320, 160);
+    ceu(c, "#1f5fb8", "#6fb2e6", "#e8f2f6");
+    chao(c, 300, "#bfc4b6");
+    palacio(c, 320, 300, 0.9, "#f2f2ec", "#46707e");
+    c.fillStyle = "#c9ccc6";
+    c.fillRect(312, 296, 16, 10);
+    c.strokeStyle = "#d6d9de";
+    c.lineWidth = 5;
+    linha(c, 320, 300, 320, 32);
+    c.fillStyle = "#e8c35a";
+    circulo(c, 320, 30, 5);
+    const sobe = trecho(t, 0.2, 4.6);
+    bandeira(c, 322, 230 - sobe * 190, 92, 0, t, false);
+    for (const lado of [-1, 1]) {
+      for (let i = 0; i < 3; i += 1) {
+        const x = 320 + lado * (64 + i * 30);
+        pessoa(c, x, 312, 62, "#16303a");
+        c.fillStyle = "#e7e3da";
+        c.fillRect(x - 7, 248, 14, 6);
+        c.strokeStyle = "#16303a";
+        c.lineWidth = 4;
+        linha(c, x + 7, 268, x + 4 * lado, 252);
+      }
+    }
+    multidao(c, 330, 30, 15, "#1b2c22", t * 0.2, 81);
     c.restore();
   },
 

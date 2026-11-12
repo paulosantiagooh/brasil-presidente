@@ -1,5 +1,5 @@
 import type { Campanha } from "./campanha";
-import type { Candidato } from "./candidato";
+import { extremosOpostos, type Candidato } from "./candidato";
 import { ESTADOS } from "./estados";
 
 // Aproximação do eleitorado de 2026, usada para transformar percentuais em votos.
@@ -206,7 +206,9 @@ export function pedirApoio(original: Eleicao, c: Campanha, candidato: Candidato,
   const paraJogador = distancia(lista[indice], lista[0]);
   const paraAdversario = distancia(lista[indice], lista[adversario]);
   const chance = 0.5 + (paraAdversario - paraJogador) / 80;
-  e.apoios.push({ indice, aceito: sortear(e) < chance });
+  // Extremos opostos não se apoiam nem no segundo turno.
+  const oposto = extremosOpostos(candidato.partidoSigla, c.rivais[indice - 1]?.sigla);
+  e.apoios.push({ indice, aceito: !oposto && sortear(e) < chance });
   return e;
 }
 

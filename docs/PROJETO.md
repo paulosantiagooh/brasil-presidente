@@ -320,3 +320,12 @@ Depois construiremos a criação do candidato e conectaremos os sistemas de camp
 - Golpe de Estado: opção de alto risco, só com personagem fictício. Quase sempre fracassa, e a partida termina nos dois casos.
 - Pacote econômico com 18 programas de emprego, inflação, crescimento e renda. Programas acumulados rendem menos, e o desemprego fica mais difícil de baixar perto do pleno emprego.
 - Quatro ações por mês, e no mínimo 60 segundos nas decisões com tempo.
+
+## Decisões de novembro de 2026: crise, posse e cara de Brasil
+
+- Gabinete de crise: cinco crises longas (apagão, banco, ataque hacker, greve geral e fronteira), em três fases mensais, com 75 segundos por decisão. Os assessores fictícios discordam, e quem é ignorado o tempo todo pede demissão. O desfecho muda a economia e o crédito para a próxima crise.
+- Posse com cortejo em carro aberto, hasteamento da Bandeira com a letra do Hino, passagem da faixa e discurso no parlatório.
+- Visual com as cores da Bandeira. A Bandeira é desenhada inteira, conforme a Lei 5.700/1971.
+- O Hino Nacional não é tocado: a lei exige execução integral e proíbe arranjo instrumental sem autorização.
+- Extremos opostos não podem ser vice, ministro, indicado nem dar apoio no segundo turno. Centro e centrão ficam liberados.
+- Metas por ministério: dar a meta é de graça, cobrar gasta uma ação, e meta perdida permite manter ou demitir.

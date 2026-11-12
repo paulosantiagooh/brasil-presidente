@@ -30,7 +30,7 @@ const CAMERA: Record<Visao, { posicao: [number, number, number]; alvo: [number, 
 function montarPredio() {
   const grupo = new THREE.Group();
   const concreto = new THREE.MeshStandardMaterial({ color: "#dfe9e7", roughness: 0.65 });
-  const linhas = new THREE.LineBasicMaterial({ color: "#2dd4bf", transparent: true, opacity: 0.55 });
+  const linhas = new THREE.LineBasicMaterial({ color: "#2fd37c", transparent: true, opacity: 0.55 });
 
   function adicionar(geometria: THREE.BufferGeometry, x: number, y: number, z: number, nome = "") {
     const malha = new THREE.Mesh(geometria, concreto);

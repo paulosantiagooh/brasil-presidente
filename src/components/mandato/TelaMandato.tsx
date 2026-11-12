@@ -22,6 +22,10 @@ import {
   promessasDoMandato,
   responderCarta,
   responderEvento,
+  resolverMetaPerdida,
+  criseAtual,
+  marcarPosse,
+  precisaDePosse,
   resumirEfeito,
   sancionar,
   decidirSobreSTF,
@@ -35,7 +39,7 @@ import { CONQUISTAS } from "@/lib/drama";
 import { DEFESAS_IMPEACHMENT, tecnicoDaEstatal } from "@/lib/mandato-dados";
 import { tocar } from "@/lib/sons";
 import { atualizarGoverno, atualizarMandato, disputarReeleicao, type Partida } from "@/lib/partidas";
-import { pessoaPorId } from "@/lib/governo";
+import { MINISTERIOS, pessoaPorId } from "@/lib/governo";
 import type { Pessoa } from "@/lib/pessoas";
 import { BuscaPessoa } from "../BuscaPessoa";
 import { CenaAnimada } from "../cenas/CenaAnimada";
@@ -56,6 +60,9 @@ import {
 } from "./Areas";
 import { Barras, numero } from "./Comum";
 import { PASSOS_DO_GOLPE } from "@/lib/poderes";
+import { NOME_DESFECHO } from "@/lib/crises";
+import { GabineteDeCrise, ResultadoDaCrise } from "./GabineteDeCrise";
+import { Posse } from "./Posse";
 import { CartaDrama, RespostaCarta } from "./CartaDrama";
 import { TelaVotacao } from "./Votacao";
 
@@ -218,8 +225,9 @@ function TelaPendencia(props: {
   mandato: Mandato;
   contexto: Contexto;
   atualizar: (mudar: (m: Mandato) => Mandato) => void;
+  aoDemitir: (ministerio: string) => void;
 }) {
-  const { mandato, contexto, atualizar } = props;
+  const { mandato, contexto, atualizar, aoDemitir } = props;
   const pendencia = mandato.pendencia;
   if (!pendencia) return null;
 
@@ -443,6 +451,40 @@ function TelaPendencia(props: {
       </section>
     );
   }
+
+  if (pendencia.tipo === "meta-ministro") {
+    const pasta = MINISTERIOS.find((p) => p.id === pendencia.ministerio);
+    const pessoa = pessoaPorId(contexto.governo.ministros[pendencia.ministerio]);
+    return (
+      <section className="boletim" aria-labelledby="titulo-meta">
+        <CenaAnimada cena="gabinete" legenda="Meta não cumprida" chave={`meta-${mandato.mes}-${pendencia.ministerio}`} />
+        <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Cobrança de metas</p>
+        <h1 id="titulo-meta" className="titulo-tela">
+          {pasta?.nome}: meta perdida
+        </h1>
+        <p className="texto-tela">
+          {pendencia.texto} No comando da pasta: {pessoa?.nome ?? "cargo vago"}. Resultado simulado pelo jogo.
+        </p>
+        <div className="respostas espaco-topo">
+          <button type="button" className="resposta" onClick={() => atualizar((m) => resolverMetaPerdida(m, "manter"))}>
+            Manter no cargo e dar outra chance.
+          </button>
+          <button
+            type="button"
+            className="resposta resposta-perigo"
+            onClick={() => {
+              aoDemitir(pendencia.ministerio);
+              atualizar((m) => resolverMetaPerdida(m, "demitir"));
+            }}
+          >
+            Demitir e indicar outro nome.
+          </button>
+        </div>
+      </section>
+    );
+  }
+  if (pendencia.tipo === "crise") return <GabineteDeCrise mandato={mandato} atualizar={atualizar} />;
+  if (pendencia.tipo === "crise-resultado") return <ResultadoDaCrise mandato={mandato} atualizar={atualizar} />;
 
   const { evento } = pendencia;
 
@@ -672,6 +714,15 @@ function TelaFim({ partida, mandato, campanha, candidato }: { partida: Partida; 
           </p>
         )}
         <p>Medidas escritas por você: {mandato.medidas.length}.</p>
+        {(mandato.crises ?? []).length > 0 && (
+          <ul className="diario">
+            {(mandato.crises ?? []).map((crise) => (
+              <li key={crise.id}>
+                <span className="dado">{nomeDoMes(crise.mes)}</span> {crise.nome}: <strong>{NOME_DESFECHO[crise.desfecho]}</strong>
+              </li>
+            ))}
+          </ul>
+        )}
         {mandato.drama.conquistas.length > 0 && (
           <ul className="mudancas">
             {CONQUISTAS.filter((c) => mandato.drama.conquistas.includes(c.id)).map((c) => (
@@ -736,7 +787,27 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
   if (mandato.fase === "fim") {
     return <TelaFim partida={partida} mandato={mandato} campanha={campanha} candidato={candidato} />;
   }
-  if (mandato.fase === "pendencia") return <TelaPendencia {...props} />;
+  if (mandato.fase === "pendencia") {
+    return (
+      <TelaPendencia
+        {...props}
+        aoDemitir={(ministerio) => atualizarGoverno(partida.id, (g) => ({ ...g, ministros: { ...g.ministros, [ministerio]: null } }))}
+      />
+    );
+  }
+  if (precisaDePosse(mandato)) {
+    return (
+      <Posse
+        nome={candidato.nomeUrna}
+        ano={mandato.mes === 49 ? 2031 : 2027}
+        reeleito={mandato.mes === 49 || candidato.pessoaReal === "lula"}
+        aoTerminar={() => {
+          atualizar(marcarPosse);
+          window.scrollTo({ top: 0 });
+        }}
+      />
+    );
+  }
 
   const vaga = vagasAbertas(mandato, governo)[0];
   if (vaga) {
@@ -758,7 +829,6 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
 
   return (
     <section className="campanha" aria-labelledby="titulo-mandato">
-      {mandato.mes === 1 && !mandato.cena && <CenaAnimada cena="posse" chave={`posse-${partida.id}`} />}
       <p className="sobretitulo">
         Mês {mandato.mes} de {mandato.limite} · Simulação
       </p>
@@ -817,6 +887,12 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
       </div>
 
       {mandato.cena && <CenaAnimada key={mandato.acoes} cena={mandato.cena} chave={`acao-${mandato.mes}-${mandato.acoes}`} rolar />}
+      {mandato.crise && (
+        <p className="faixa-crise" role="status">
+          <span className="ao-vivo" aria-hidden="true" /> Gabinete de crise: {criseAtual(mandato)?.nome}. Fase{" "}
+          {mandato.crise.fase + 1} de 3 no próximo mês. Gravidade {mandato.crise.gravidade}.
+        </p>
+      )}
       {mandato.resumoMes && (
         <p className="resumo-mes" role="status">
           <strong>{nomeDoMes(mandato.resumoMes.mes)}:</strong> aprovação {sinal(mandato.resumoMes.aprovacao)} · PIB{" "}

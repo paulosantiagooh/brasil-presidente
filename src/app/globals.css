@@ -1,15 +1,20 @@
 :root {
-  --fundo: #071012;
-  --fundo-alto: #0c191c;
-  --superficie: #0f2024;
-  --superficie-alta: #15292e;
-  --linha: #21393e;
-  --linha-forte: #35565c;
-  --texto: #e8f3f1;
-  --texto-suave: #9db7b6;
-  --turquesa: #2dd4bf;
-  --turquesa-claro: #7cebdc;
-  --turquesa-escuro: #06211f;
+  /* Cores do Brasil: o verde, o amarelo e o azul da Bandeira sobre um fundo escuro. */
+  --fundo: #06140f;
+  --fundo-alto: #0a1d15;
+  --superficie: #0d2419;
+  --superficie-alta: #133022;
+  --linha: #1f3d2e;
+  --linha-forte: #2f5a44;
+  --texto: #eef6f0;
+  --texto-suave: #a5c0b0;
+  --turquesa: #2fd37c;
+  --turquesa-claro: #8ff0b6;
+  --turquesa-escuro: #062a17;
+  --verde-bandeira: #009c3b;
+  --amarelo-bandeira: #ffdf00;
+  --azul-bandeira: #002776;
+  --azul-claro: #6f9cf0;
   --perigo: #fb8a7e;
   --perigo-fundo: #3a1714;
   --aviso: #f2c14e;
@@ -34,6 +39,18 @@ html {
 
 html[data-texto="grande"] {
   font-size: 18.5px;
+}
+
+body::before {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 50;
+  height: 4px;
+  background: linear-gradient(90deg, var(--verde-bandeira) 0 40%, var(--amarelo-bandeira) 40% 70%, var(--azul-bandeira) 70%);
+  content: "";
+  pointer-events: none;
 }
 
 body {
@@ -85,7 +102,9 @@ button {
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(70% 80% at 72% 42%, rgb(45 212 191 / 0.13), transparent 70%),
+    radial-gradient(60% 70% at 78% 30%, rgb(255 223 0 / 0.09), transparent 70%),
+    radial-gradient(70% 80% at 72% 42%, rgb(0 156 59 / 0.2), transparent 70%),
+    radial-gradient(60% 60% at 90% 90%, rgb(0 39 118 / 0.35), transparent 70%),
     linear-gradient(180deg, var(--fundo-alto), var(--fundo) 62%);
 }
 
@@ -113,15 +132,15 @@ button {
 }
 
 .mapa-contorno {
-  fill: rgb(45 212 191 / 0.035);
-  stroke: rgb(45 212 191 / 0.34);
+  fill: rgb(47 211 124 / 0.035);
+  stroke: rgb(47 211 124 / 0.34);
   stroke-width: 1.2;
   stroke-linejoin: round;
 }
 
 .mapa-pontos {
   fill: none;
-  stroke: rgb(45 212 191 / 0.3);
+  stroke: rgb(47 211 124 / 0.3);
   stroke-width: 3.4;
   stroke-linecap: round;
 }
@@ -180,7 +199,7 @@ button {
 
 .congresso path {
   fill: var(--fundo);
-  stroke: rgb(45 212 191 / 0.42);
+  stroke: rgb(47 211 124 / 0.42);
   stroke-width: 1.4;
   vector-effect: non-scaling-stroke;
 }
@@ -235,7 +254,7 @@ button {
 
 .logotipo-pais {
   display: block;
-  color: var(--turquesa);
+  color: var(--amarelo-bandeira);
   font-size: clamp(2rem, 7vw, 2.6rem);
   letter-spacing: 0.04em;
 }
@@ -1896,7 +1915,7 @@ label.botao:has(+ .arquivo:focus-visible) {
 }
 
 .mudanca-boa {
-  background: rgb(45 212 191 / 0.15);
+  background: rgb(47 211 124 / 0.15);
   color: var(--turquesa-claro);
 }
 
@@ -2267,6 +2286,230 @@ label.botao:has(+ .arquivo:focus-visible) {
 .acao-perigo strong,
 .resposta-perigo {
   color: var(--perigo);
+}
+
+.bandeira-inicio {
+  display: block;
+  width: min(132px, 36vw);
+  height: auto;
+  margin-bottom: 1rem;
+  border-radius: 3px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.45);
+}
+
+.ao-vivo {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.3rem;
+  border-radius: 50%;
+  background: #ff3b30;
+  vertical-align: 0.05rem;
+  animation: piscar 1s infinite;
+}
+
+@keyframes piscar {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.faixa-crise {
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--perigo);
+  border-radius: 8px;
+  background: var(--perigo-fundo);
+  color: var(--texto);
+  font-size: 0.92rem;
+}
+
+.letreiro {
+  display: flex;
+  overflow: hidden;
+  margin-top: 0.8rem;
+  border-radius: 6px;
+  background: #000;
+  font-family: var(--fonte-dado), monospace;
+  font-size: 0.82rem;
+}
+
+.letreiro-selo {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  padding: 0.35rem 0.6rem;
+  background: #c8281e;
+  color: #fff;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.letreiro-faixa {
+  display: flex;
+  flex: none;
+  padding: 0.35rem 0;
+  color: var(--amarelo-bandeira);
+  white-space: nowrap;
+  animation: letreiro 28s linear infinite;
+}
+
+.letreiro-faixa span {
+  padding-left: 1rem;
+}
+
+@keyframes letreiro {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.gravidade {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.8rem;
+}
+
+.gravidade .barra span {
+  background: var(--turquesa);
+  transition: width 0.8s;
+}
+
+.gravidade.seria .barra span {
+  background: var(--aviso);
+}
+
+.gravidade.grave .barra span {
+  background: var(--perigo);
+}
+
+.conselhos,
+.reacoes {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.conselho,
+.reacoes li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--linha-forte);
+  border-radius: 8px;
+  background: var(--superficie);
+}
+
+.conselho-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.conselho-topo .dado {
+  flex: none;
+  color: var(--texto-suave);
+  font-size: 0.75rem;
+}
+
+.conselho-fala {
+  color: var(--texto);
+  font-style: italic;
+}
+
+.ministerio-com-meta {
+  display: grid;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--linha);
+}
+
+.meta-pasta {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.meta-pasta .acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.barra-meta span {
+  background: var(--amarelo-bandeira);
+}
+
+.barra-meta.feita span {
+  background: var(--turquesa);
+}
+
+.posse {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.posse-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.posse-bandeira {
+  flex: none;
+  width: 54px;
+  height: auto;
+  border-radius: 2px;
+}
+
+.posse-passos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.posse-passos li {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--linha-forte);
+  border-radius: 999px;
+  color: var(--texto-suave);
+  font-size: 0.78rem;
+}
+
+.posse-passos li.atual {
+  border-color: var(--amarelo-bandeira);
+  color: var(--amarelo-bandeira);
+}
+
+.posse-passos li.feito {
+  border-color: var(--turquesa);
+  color: var(--turquesa);
+}
+
+.hino {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-left: 4px solid var(--amarelo-bandeira);
+  border-radius: 0 8px 8px 0;
+  background: var(--superficie);
+}
+
+.hino p {
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+.hino footer {
+  margin-top: 0.5rem;
+}
+
+.chamada-posse {
+  color: var(--amarelo-bandeira);
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .cena {

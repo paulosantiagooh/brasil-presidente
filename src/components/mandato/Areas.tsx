@@ -10,7 +10,10 @@ import {
   custoAnualDasObras,
   disponiveis,
   custoDoOrcamentoDoMandato,
+  darMeta,
   executar,
+  lerIndicador,
+  metaCumprida,
   mudarOrcamento,
   nomeDoMes,
   LIMITE_OBRAS,
@@ -50,6 +53,7 @@ import {
 } from "@/lib/mandato-dados";
 import { JORNAL } from "@/lib/drama";
 import { LIMITE_PROGRAMAS, PROGRAMAS_ECONOMICOS } from "@/lib/poderes";
+import { INDICADOR_DA_PASTA } from "@/lib/metas-ministros";
 import { BuscaPessoa } from "../BuscaPessoa";
 import { CenaAnimada } from "../cenas/CenaAnimada";
 import { cenaDoAcontecimento } from "@/lib/cenas";
@@ -793,6 +797,55 @@ export function PainelMedidas(props: Props) {
   );
 }
 
+function MetaDaPasta(props: Props & { ministerio: Ministerio }) {
+  const { mandato, ministerio, atualizar } = props;
+  const { semAcoes, fazer } = useAcao(props);
+  const indicador = INDICADOR_DA_PASTA[ministerio.id];
+  if (!indicador) return null;
+  const meta = (mandato.metasMinistros ?? []).find((item) => item.ministerio === ministerio.id);
+  const atual = lerIndicador(mandato, indicador.chave);
+  const formatar = (valor: number) => `${numero(valor, indicador.casas)}${indicador.sufixo}`;
+  if (!meta) {
+    const alvo = (ousada: boolean) => atual + (indicador.menor ? -1 : 1) * (ousada ? indicador.ousada : indicador.realista);
+    return (
+      <div className="meta-pasta">
+        <span className="ajuda">
+          {indicador.nome}: {formatar(atual)}. Sem meta.
+        </span>
+        <div className="acoes">
+          <button type="button" className="botao" onClick={() => atualizar((m) => darMeta(m, ministerio.id, false))}>
+            Meta realista: {formatar(alvo(false))}
+          </button>
+          <button type="button" className="botao" onClick={() => atualizar((m) => darMeta(m, ministerio.id, true))}>
+            Meta ousada: {formatar(alvo(true))}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  const total = meta.alvo - meta.inicial;
+  const progresso = total === 0 ? 100 : Math.max(0, Math.min(100, ((atual - meta.inicial) / total) * 100));
+  return (
+    <div className="meta-pasta">
+      <span className="barra-nome">
+        <span className="rotulo">
+          Meta {meta.ousada ? "ousada" : "realista"}: {(indicador.nome.charAt(0).toLowerCase() + indicador.nome.slice(1))} {indicador.menor ? "até" : "em"} {formatar(meta.alvo)}
+        </span>
+        <strong>até {nomeDoMes(meta.inicio + meta.prazo)}</strong>
+      </span>
+      <span className={metaCumprida(mandato, meta) ? "barra barra-meta feita" : "barra barra-meta"} aria-hidden="true">
+        <span style={{ width: `${progresso}%` }} />
+      </span>
+      <span className="ajuda">
+        Agora: {formatar(atual)} · {metaCumprida(mandato, meta) ? "meta alcançada, falta manter até o prazo" : `${Math.round(progresso)}% do caminho`}
+      </span>
+      <button type="button" className="botao" disabled={semAcoes} onClick={() => fazer({ tipo: "meta-cobrar", ministerio: ministerio.id })}>
+        Cobrar resultado {meta.cobrancas > 0 ? `(${meta.cobrancas}ª vez)` : ""}
+      </button>
+    </div>
+  );
+}
+
 export function PainelMinistros(props: Props & { aoTrocar: (ministerio: string, pessoa: Pessoa) => void }) {
   const { contexto, aoTrocar } = props;
   const { semAcoes, fazer } = useAcao(props);
@@ -809,20 +862,23 @@ export function PainelMinistros(props: Props & { aoTrocar: (ministerio: string, 
   return (
     <div className="formulario">
       <p className="ajuda">
-        Cada troca gasta uma ação e muda a base: partido que perde a pasta pode sair do governo.
+        Cada troca gasta uma ação e muda a base: partido que perde a pasta pode sair do governo. Dar uma meta é
+        de graça; cobrar gasta uma ação. Meta ousada rende mais, mas é mais difícil de bater. No prazo, quem não
+        cumprir pode ser demitido.
       </p>
       <ul className="lista-ministerios">
         {ministeriosAtivos(governo).map((ministerio) => {
           const pessoa = pessoaPorId(governo.ministros[ministerio.id]);
           return (
-            <li key={ministerio.id}>
+            <li key={ministerio.id} className="ministerio-com-meta">
               <button type="button" className="acao" disabled={semAcoes} onClick={() => setAberto(ministerio)}>
                 <span className="cartao-topo">
                   <strong>{ministerio.nome}</strong>
                   {pessoa?.sigla && <span className="dado">{pessoa.sigla}</span>}
                 </span>
-                <span className="ajuda">{pessoa?.nome}</span>
+                <span className="ajuda">{pessoa?.nome} · trocar</span>
               </button>
+              <MetaDaPasta {...props} ministerio={ministerio} />
             </li>
           );
         })}

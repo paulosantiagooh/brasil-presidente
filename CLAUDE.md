@@ -7,7 +7,7 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - O repositório é público e o jogo roda em https://paulosantiagooh.github.io/brasil-presidente/ (GitHub Pages, branch `gh-pages`). Nunca coloque segredo ou dado pessoal no código.
 - Construa uma etapa por vez, na ordem da seção 23 do documento. Cada módulo funciona antes de ser integrado.
 - A interface fica em `src/`, com nomes em português. As cores são os tokens de `src/app/globals.css`.
-- Identidade própria: escura, com detalhes em verde-turquesa. O jogo PLANALTO serve de referência para o gênero e a organização das informações, mas nunca copie o nome, a arte, os textos ou a aparência dele.
+- Identidade própria: escura, com as cores do Brasil (verde, amarelo e azul da Bandeira). O jogo PLANALTO serve de referência para o gênero e a organização das informações, mas nunca copie o nome, a arte, os textos ou a aparência dele.
 - Partidos e números de urna são reais, conforme a lista em `src/lib/candidato.ts`. Tamanho e posição de cada partido são estimativas do jogo.
 - O jogo começa na eleição de 2026, em uma história alternativa. Adversários, vices e ministros são políticos reais em um cenário hipotético, a pedido do dono do projeto. Confira cargo e partido antes de citar alguém.
 - A lista de deputados e senadores vem dos dados abertos do Congresso (`scripts/gerar-parlamentares.mjs`). Nomes destacados ficam em `src/lib/pessoas.ts`.
@@ -21,6 +21,11 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - Os outros Poderes ficam em `src/lib/poderes.ts`: projetos do Congresso para sanção ou veto (o veto pode ser derrubado com 257 deputados e 41 senadores), decisões do STF, Forças Armadas dentro da Constituição (intervenção federal e GLO) e o pacote econômico. Textos nunca citam pessoas reais.
 - O golpe de Estado é crime no Brasil (Código Penal, art. 359-M): no jogo, quase sempre fracassa, encerra a partida nos dois casos e nunca aparece quando o jogador é uma pessoa real.
 - Decisões com tempo (crises urgentes e debate) têm no mínimo 60 segundos.
+- A Bandeira Nacional segue a Lei 5.700/1971: sempre inteira, nas proporções e cores certas, com o lema e as 27 estrelas (`src/lib/bandeira.ts`). Nunca mude a forma, as cores ou o dístico.
+- O Hino Nacional não é tocado pelo jogo: a lei proíbe arranjo instrumental sem autorização do presidente da República e exige execução integral. Na posse, a letra aparece e a música do jogo fica em silêncio.
+- Extremos opostos (polos de esquerda e de direita em `poloDoPartido`, `src/lib/candidato.ts`) não dividem chapa, governo, cargos nem apoio. Centro e centrão negociam com os dois lados.
+- O gabinete de crise (`src/lib/crises.ts`) usa só os assessores fictícios. Ministros reais nunca recebem falas inventadas.
+- Metas de ministros (`src/lib/metas-ministros.ts`) são cobradas por pasta. Resultado é da simulação, nunca nota pessoal de quem ocupa o cargo.
 - Atributos de ministros reais vêm do tipo de cargo e do alinhamento na partida, nunca de uma nota pessoal. Técnicos são personagens fictícios.
 - As bancadas de `src/lib/governo.ts` partem da Câmara eleita em 2026 e da projeção do Senado para 2027.
 - O mandato (`src/lib/mandato.ts` e `mandato-dados.ts`) anda por meses. Valores econômicos são simulados, e os nomes técnicos para cargos são fictícios. Eventos nunca citam pessoas reais.

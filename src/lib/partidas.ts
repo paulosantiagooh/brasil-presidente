@@ -3,10 +3,10 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { criarCampanha, type Campanha } from "./campanha";
 import { percentualValido, totalDoTurno } from "./eleicao";
-import { CANDIDATO_VAZIO, type Candidato } from "./candidato";
+import { CANDIDATO_VAZIO, extremosOpostos, type Candidato } from "./candidato";
 import type { Dificuldade } from "./config";
 import { iniciarEleicao, type Eleicao } from "./eleicao";
-import { criarGoverno, type Governo } from "./governo";
+import { criarGoverno, pessoaPorId, type Governo } from "./governo";
 import { criarLoja } from "./loja";
 import { criarDrama, criarMandato, limparRepetidos, registrarReeleicao, resolverNomeacao, type Mandato } from "./mandato";
 
@@ -29,6 +29,16 @@ export type Partida = {
 
 // Partidas salvas antes das novidades do mandato ganham os campos que faltam.
 function completar(partida: Partida): Partida {
+  // Partidas antigas: ministro do extremo oposto deixa o cargo, e o presidente indica outro.
+  if (partida.governo && partida.candidato) {
+    const sigla = partida.candidato.partidoSigla;
+    const ministros = Object.fromEntries(
+      Object.entries(partida.governo.ministros).map(([pasta, id]) => [pasta, id && extremosOpostos(sigla, pessoaPorId(id)?.sigla) ? null : id]),
+    );
+    if (Object.entries(ministros).some(([pasta, id]) => id !== partida.governo?.ministros[pasta])) {
+      partida = { ...partida, governo: { ...partida.governo, ministros } };
+    }
+  }
   if (!partida.mandato) return partida;
   const mandato = {
     ...partida.mandato,

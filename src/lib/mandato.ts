@@ -1,12 +1,14 @@
 import type { Campanha } from "./campanha";
 import type { Candidato } from "./candidato";
 import type { TipoCena } from "./cenas";
-import { CARTA_RUAS, CARTAS, COMENTARIOS, CONQUISTAS, METAS_BASE, TITULOS_LEGADO, USUARIOS, type Carta } from "./drama";
+import { CARTA_RUAS, CARTAS, COMENTARIOS, CONQUISTAS, METAS_BASE, PERSONAGENS, TITULOS_LEGADO, USUARIOS, type Carta } from "./drama";
 import type { Eleicao } from "./eleicao";
-import { dadosDoVice } from "./candidato";
-import { AREAS, calcularBalanco, custoDoOrcamento, estimarVotos, ministeriosAtivos, pastasDoPartido, pessoaPorId, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
+import { dadosDoVice, extremosOpostos, MOTIVO_EXTREMOS } from "./candidato";
+import { AREAS, atributosDe, calcularBalanco, MINISTERIOS, custoDoOrcamento, estimarVotos, ministeriosAtivos, pastasDoPartido, pessoaPorId, TETO_ORCAMENTO, votarIndicacao, votarProposta, type Casa, type Governo } from "./governo";
 import { POLITICOS, semAcento, type Pessoa } from "./pessoas";
 import { noEstado } from "./estados";
+import { CRISES, desfechoDaCrise, NOME_DESFECHO } from "./crises";
+import { INDICADOR_DA_PASTA, PRAZO_DA_META, type MetaDoMinistro } from "./metas-ministros";
 import {
   AFRONTAR_STF,
   DECISOES_DO_STF,
@@ -159,9 +161,16 @@ export type Pendencia =
   | { tipo: "sancao"; projeto: ProjetoDoCongresso }
   | { tipo: "stf"; decisao: DecisaoDoSTF }
   | { tipo: "golpe"; passo: number; chance: number }
+  | { tipo: "crise" }
+  | { tipo: "meta-ministro"; ministerio: string; texto: string }
+  | { tipo: "crise-resultado"; titulo: string; texto: string; antes: number; depois: number; reacoes: { quem: string; texto: string }[]; desfecho: Desfecho | null; saiu: string | null }
   | { tipo: "resultado"; sobretitulo: string; titulo: string; texto: string; cena: TipoCena; placar?: { rotulo: string; sim: number; nao: number }[] };
 
 export type ProgramaAtivo = { id: string; nome: string; inicio: number; fim: number };
+
+export type CriseAtiva = { id: string; fase: number; gravidade: number; proxima: number; ignorados: Record<string, number> };
+
+export type Desfecho = "contida" | "arrastada" | "desastre";
 
 export type Mandato = {
   versao: 1;
@@ -206,6 +215,12 @@ export type Mandato = {
   vetos?: { id: string; mes: number; parcial: boolean }[];
   projetosDoCongresso?: string[];
   golpe?: "fracassou" | "venceu" | null;
+  crise?: CriseAtiva | null;
+  crises?: { id: string; nome: string; desfecho: Desfecho; mes: number }[];
+  proximaCrise?: number;
+  posses?: number[];
+  metasMinistros?: MetaDoMinistro[];
+  metasBatidas?: number;
 };
 
 export type Contexto = { governo: Governo; candidato: Candidato };
@@ -417,6 +432,7 @@ function escolherCarta(m: Mandato): Carta | null {
     (c) =>
       !c.somenteAgendada &&
       !(m.pessoaReal && c.sensivel) &&
+      !d.flags.includes(`saiu-${c.quem}`) &&
       !d.vistas.includes(c.id) &&
       (c.requer ?? []).every((f) => d.flags.includes(f)) &&
       !(c.bloqueia ?? []).some((f) => d.flags.includes(f)),
@@ -424,7 +440,7 @@ function escolherCarta(m: Mandato): Carta | null {
   if (livres.length > 0) return livres[Math.floor(sortear(m) * livres.length)];
   // Acabaram as novidades: os dilemas do dia a dia podem voltar, mas as histórias não se repetem.
   const repetiveis = CARTAS.filter(
-    (c) => !c.capitulo && !c.urgente && !(c.bloqueia ?? []).some((f) => d.flags.includes(f)) && c.id !== d.vistas.at(-1),
+    (c) => !c.capitulo && !c.urgente && !d.flags.includes(`saiu-${c.quem}`) && !(c.bloqueia ?? []).some((f) => d.flags.includes(f)) && c.id !== d.vistas.at(-1),
   );
   return repetiveis.length > 0 ? repetiveis[Math.floor(sortear(m) * repetiveis.length)] : null;
 }
@@ -549,7 +565,8 @@ export type Acao =
   | { tipo: "programa-encerrar"; id: string }
   | { tipo: "intervencao"; uf: string }
   | { tipo: "glo"; uf: string }
-  | { tipo: "golpe" };
+  | { tipo: "golpe" }
+  | { tipo: "meta-cobrar"; ministerio: string };
 
 function bonusDoCongresso(m: Mandato) {
   return (m.congresso - 50) / 250;
@@ -590,7 +607,9 @@ export function nomesComMandato(m: Mandato) {
 export function disponiveis(m: Mandato, contexto: Contexto) {
   const fora = nomesComMandato(m);
   const vice = dadosDoVice(contexto.candidato)?.nome;
-  return POLITICOS.filter((p) => !fora.has(p.nome) && p.nome !== vice && p.nome !== contexto.candidato.nomeUrna);
+  return POLITICOS.filter(
+    (p) => !fora.has(p.nome) && p.nome !== vice && p.nome !== contexto.candidato.nomeUrna && !extremosOpostos(contexto.candidato.partidoSigla, p.sigla),
+  );
 }
 
 // Motivo para recusar um nome escrito à mão.
@@ -599,6 +618,8 @@ export function nomeImpedido(m: Mandato, contexto: Contexto, nome: string) {
   if (alvo === semAcento(contexto.candidato.nomeUrna)) return "Você não pode nomear a si mesmo.";
   if (alvo === semAcento(dadosDoVice(contexto.candidato)?.nome ?? "")) return "Quem é vice não pode ocupar outro cargo.";
   if ([...nomesComMandato(m)].some((n) => semAcento(n) === alvo)) return "Essa pessoa já tem um mandato fixo.";
+  const real = POLITICOS.find((p) => semAcento(p.nome) === alvo);
+  if (real && extremosOpostos(contexto.candidato.partidoSigla, real.sigla)) return MOTIVO_EXTREMOS;
   return null;
 }
 
@@ -972,6 +993,21 @@ function fazerAcao(original: Mandato, contexto: Contexto, acao: Acao): Mandato {
     m.fase = "pendencia";
   }
 
+  if (acao.tipo === "meta-cobrar") {
+    const meta = (m.metasMinistros ?? []).find((item) => item.ministerio === acao.ministerio);
+    const indicador = INDICADOR_DA_PASTA[acao.ministerio];
+    if (!meta || !indicador) return m;
+    meta.cobrancas += 1;
+    empurrar(m, indicador.chave, ((meta.alvo - meta.inicial) / meta.prazo) * 1.5);
+    const pasta = MINISTERIOS.find((p) => p.id === acao.ministerio)?.nome ?? "pasta";
+    if (meta.cobrancas >= 3) {
+      aplicar(m, { congresso: -1.5 });
+      noticiar(m, `Pressão demais: a equipe de ${pasta} reclama das cobranças do Planalto.`);
+    } else {
+      noticiar(m, `O presidente cobra resultados de ${pasta}.`);
+    }
+  }
+
   if (acao.tipo === "divida") {
     if (acao.acao === "alongar") {
       aplicar(m, { "e.confianca": 2, "e.primario": -0.02 });
@@ -1163,6 +1199,7 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
 
   avancarObras(m);
   simularMes(m);
+  const metaPerdida = avancarMetas(m, contexto);
   const d = m.drama;
   d.pressao = limitar(
     d.pressao + (46 - m.aprovacao) * 0.09 + Math.max(0, m.economia.ipca - 5) * 0.5 + Math.max(0, m.economia.desemprego - 7) * 0.5 - 0.5,
@@ -1182,6 +1219,13 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   };
 
   if (m.mes >= m.limite) {
+    // Crise ainda aberta no último mês: o desfecho é o que estiver na mesa.
+    const aberta = criseAtual(m);
+    if (aberta && m.crise) {
+      const desfecho = desfechoDaCrise(m.crise.gravidade);
+      m.crises = [...(m.crises ?? []), { id: aberta.id, nome: aberta.nome, desfecho, mes: m.mes }];
+      m.crise = null;
+    }
     m.fase = "fim";
     return m;
   }
@@ -1189,6 +1233,18 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   m.mes += 1;
   m.acoes = ACOES_POR_MES;
 
+  if (metaPerdida) {
+    const pasta = MINISTERIOS.find((p) => p.id === metaPerdida.ministerio)?.nome ?? "pasta";
+    m.gestao = limitar(m.gestao - (metaPerdida.ousada ? 2 : 3));
+    aplicar(m, { aprovacao: -1 });
+    m.pendencia = {
+      tipo: "meta-ministro",
+      ministerio: metaPerdida.ministerio,
+      texto: `O prazo de 12 meses acabou e a pasta não chegou à meta de ${(INDICADOR_DA_PASTA[metaPerdida.ministerio].nome.charAt(0).toLowerCase() + INDICADOR_DA_PASTA[metaPerdida.ministerio].nome.slice(1))}.`,
+    };
+    m.fase = "pendencia";
+    return m;
+  }
   const afrontas = d.flags.filter((f) => f === "afronta-stf").length;
   const crise = (m.aprovacao < 22 && m.congresso < 42) || (afrontas >= 2 && m.congresso < 50 && m.aprovacao < 40);
   if (crise && m.mes - m.impeachmentMes > 12 && m.mes > 6) {
@@ -1209,6 +1265,24 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
   const veto = (m.vetos ?? []).find((v) => v.mes <= m.mes);
   if (veto) {
     sessaoDoVeto(m, veto);
+    return m;
+  }
+  // Gabinete de crise: uma crise grande, em três meses seguidos.
+  if (m.crise && m.mes >= m.crise.proxima) {
+    m.pendencia = { tipo: "crise" };
+    m.fase = "pendencia";
+    return m;
+  }
+  const vividas = m.crises ?? [];
+  const novas = CRISES.filter((c) => !vividas.some((v) => v.id === c.id));
+  if (!m.crise && novas.length > 0 && m.mes >= (m.proximaCrise ?? 7) && m.mes + 3 <= m.limite && sortear(m) < 0.3) {
+    const crise = novas[Math.floor(sortear(m) * novas.length)];
+    // Quem saiu mal da última crise começa a próxima com menos crédito.
+    const ultima = vividas.at(-1)?.desfecho;
+    const gravidade = 50 + (ultima === "desastre" ? 10 : ultima === "contida" ? -8 : 0);
+    m.crise = { id: crise.id, fase: 0, gravidade, proxima: m.mes, ignorados: {} };
+    m.pendencia = { tipo: "crise" };
+    m.fase = "pendencia";
     return m;
   }
   if (d.pressao >= 78) {
@@ -1389,6 +1463,185 @@ export function avancarGolpe(original: Mandato, opcao: number | "recuar"): Manda
     });
   }
   return m;
+}
+
+export function lerIndicador(m: Mandato, chave: string) {
+  if (chave === "aprovacao") return m.aprovacao;
+  if (chave === "congresso") return m.congresso;
+  if (chave === "relacoes") {
+    const valores = Object.values(m.relacoes);
+    return valores.reduce((soma, v) => soma + v, 0) / Math.max(1, valores.length);
+  }
+  const [grupo, campo] = chave.split(".");
+  if (grupo === "e") return m.economia[campo as keyof Economia];
+  if (grupo === "s") return m.sociedade[campo as keyof Sociedade];
+  return m.seguranca[campo as keyof Seguranca];
+}
+
+function empurrar(m: Mandato, chave: string, valor: number) {
+  if (chave === "relacoes") {
+    for (const parceiro of Object.keys(m.relacoes)) m.relacoes[parceiro] = limitar(m.relacoes[parceiro] + valor);
+    return;
+  }
+  aplicar(m, { [chave]: valor });
+}
+
+// Dar uma meta não gasta ação: o ministro passa a trabalhar por ela até o prazo.
+export function darMeta(original: Mandato, ministerio: string, ousada: boolean): Mandato {
+  const indicador = INDICADOR_DA_PASTA[ministerio];
+  if (!indicador || (original.metasMinistros ?? []).some((meta) => meta.ministerio === ministerio)) return original;
+  const m = structuredClone(original);
+  const inicial = lerIndicador(m, indicador.chave);
+  const passo = ousada ? indicador.ousada : indicador.realista;
+  const meta: MetaDoMinistro = {
+    ministerio, inicial, alvo: inicial + (indicador.menor ? -passo : passo), inicio: m.mes, prazo: PRAZO_DA_META, ousada, cobrancas: 0,
+  };
+  m.metasMinistros = [...(m.metasMinistros ?? []), meta];
+  const pasta = MINISTERIOS.find((p) => p.id === ministerio)?.nome ?? "pasta";
+  noticiar(m, `Meta ${ousada ? "ousada" : "definida"} para ${pasta}: ${(indicador.nome.charAt(0).toLowerCase() + indicador.nome.slice(1))} em 12 meses.`);
+  return m;
+}
+
+export function metaCumprida(m: Mandato, meta: MetaDoMinistro) {
+  const indicador = INDICADOR_DA_PASTA[meta.ministerio];
+  const atual = lerIndicador(m, indicador.chave);
+  return indicador.menor ? atual <= meta.alvo : atual >= meta.alvo;
+}
+
+// A cada mês, quem tem meta trabalha por ela. Ministro mais competente rende mais.
+function avancarMetas(m: Mandato, contexto: Contexto) {
+  let falhou: MetaDoMinistro | null = null;
+  for (const meta of m.metasMinistros ?? []) {
+    const indicador = INDICADOR_DA_PASTA[meta.ministerio];
+    const pessoa = pessoaPorId(contexto.governo.ministros[meta.ministerio]);
+    if (!indicador || !pessoa) continue;
+    const competencia = atributosDe(pessoa, contexto.candidato).competencia / 70;
+    empurrar(m, indicador.chave, ((meta.alvo - meta.inicial) / meta.prazo) * (meta.ousada ? 0.55 : 0.7) * competencia);
+  }
+  for (const meta of [...(m.metasMinistros ?? [])]) {
+    if (meta.inicio + meta.prazo > m.mes) continue;
+    const pasta = MINISTERIOS.find((p) => p.id === meta.ministerio)?.nome ?? "pasta";
+    if (metaCumprida(m, meta)) {
+      m.metasMinistros = (m.metasMinistros ?? []).filter((item) => item !== meta);
+      m.metasBatidas = (m.metasBatidas ?? 0) + 1;
+      m.gestao = limitar(m.gestao + (meta.ousada ? 5 : 3));
+      aplicar(m, { aprovacao: meta.ousada ? 2 : 1 });
+      noticiar(m, `Meta cumprida: ${pasta} entregou o resultado.`);
+      if (m.metasBatidas >= 3) conquistar(m, "equipe-afinada");
+    } else if (!falhou) {
+      falhou = meta;
+    }
+  }
+  return falhou;
+}
+
+export function resolverMetaPerdida(original: Mandato, escolha: "manter" | "demitir"): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "meta-ministro") return m;
+  const { ministerio } = m.pendencia;
+  const pasta = MINISTERIOS.find((p) => p.id === ministerio)?.nome ?? "pasta";
+  m.metasMinistros = (m.metasMinistros ?? []).filter((meta) => meta.ministerio !== ministerio);
+  if (escolha === "manter") {
+    m.gestao = limitar(m.gestao - 2);
+    noticiar(m, `O presidente mantém o comando de ${pasta}, apesar da meta perdida.`);
+  } else {
+    aplicar(m, { aprovacao: 1, congresso: -2 });
+    noticiar(m, `Demissão: o presidente troca o comando de ${pasta}.`);
+  }
+  m.pendencia = null;
+  m.fase = "gestao";
+  return m;
+}
+
+export function criseAtual(m: Mandato) {
+  return m.crise ? CRISES.find((c) => c.id === m.crise?.id) ?? null : null;
+}
+
+// Assessores que pediram demissão não aparecem mais no gabinete de crise.
+export function conselhosDaFase(m: Mandato) {
+  const crise = criseAtual(m);
+  if (!crise || !m.crise) return [];
+  const fase = crise.fases[m.crise.fase];
+  const todos = fase.conselhos.map((conselho, indice) => ({ conselho, indice }));
+  const presentes = todos.filter(({ conselho }) => !m.drama.flags.includes(`saiu-${conselho.quem}`));
+  return presentes.length >= 2 ? presentes : todos;
+}
+
+export function decidirCrise(original: Mandato, indice: number | null): Mandato {
+  const m = structuredClone(original);
+  const crise = criseAtual(m);
+  if (m.pendencia?.tipo !== "crise" || !crise || !m.crise) return m;
+  const ativa = m.crise;
+  const fase = crise.fases[ativa.fase];
+  const presentes = conselhosDaFase(m).map((c) => c.conselho);
+  const antes = ativa.gravidade;
+  const reacoes: { quem: string; texto: string }[] = [];
+  let texto: string;
+  // Toda crise piora um pouco sozinha de um mês para o outro.
+  ativa.gravidade += 4;
+  if (indice === null) {
+    ativa.gravidade += 16;
+    aplicar(m, { aprovacao: -3 });
+    texto = "O tempo acabou sem uma decisão. Cada área agiu por conta própria, e a crise piorou.";
+    for (const conselho of presentes.slice(0, 2)) reacoes.push({ quem: conselho.quem, texto: "Ninguém deu a ordem. Fizemos o que deu." });
+    for (const conselho of presentes) ativa.ignorados[conselho.quem] = (ativa.ignorados[conselho.quem] ?? 0) + 1;
+  } else {
+    const escolhido = fase.conselhos[indice] ?? presentes[0];
+    aplicar(m, escolhido.efeito);
+    ativa.gravidade += escolhido.gravidade + ruido(m, 4);
+    texto = `Você seguiu o plano de ${PERSONAGENS[escolhido.quem]?.nome ?? "um assessor"}: ${escolhido.plano.charAt(0).toLowerCase()}${escolhido.plano.slice(1)}`;
+    reacoes.push({ quem: escolhido.quem, texto: "Deixa comigo, presidente." });
+    for (const conselho of presentes.filter((c) => c !== escolhido)) {
+      ativa.ignorados[conselho.quem] = (ativa.ignorados[conselho.quem] ?? 0) + 1;
+      reacoes.push({ quem: conselho.quem, texto: conselho.ignorado });
+    }
+  }
+  ativa.gravidade = limitar(Math.round(ativa.gravidade));
+  noticiar(m, `Gabinete de crise (${crise.nome}): ${fase.titulo.toLowerCase()}.`);
+
+  // Quem é ignorado em todas as fases pede demissão, e as histórias dele acabam.
+  let saiu: string | null = null;
+  for (const [quem, vezes] of Object.entries(ativa.ignorados)) {
+    if (vezes >= 3 && !m.drama.flags.includes(`saiu-${quem}`) && !saiu) {
+      saiu = quem;
+      m.drama.flags.push(`saiu-${quem}`);
+      aplicar(m, { pressao: 3 });
+      noticiar(m, `${PERSONAGENS[quem]?.nome ?? "Um assessor"} pede demissão e deixa o governo.`);
+    }
+  }
+
+  let desfecho: Desfecho | null = null;
+  if (ativa.fase + 1 >= crise.fases.length) {
+    desfecho = desfechoDaCrise(ativa.gravidade);
+    aplicar(m, crise.desfechos[desfecho]);
+    m.crises = [...(m.crises ?? []), { id: crise.id, nome: crise.nome, desfecho, mes: m.mes }];
+    m.crise = null;
+    m.proximaCrise = m.mes + 9;
+    if (desfecho === "contida") conquistar(m, "crise-contida");
+    noticiar(m, `${crise.nome}: ${crise.textos[desfecho]}`);
+  } else {
+    ativa.fase += 1;
+    ativa.proxima = m.mes + 1;
+  }
+  m.pendencia = {
+    tipo: "crise-resultado",
+    titulo: desfecho ? NOME_DESFECHO[desfecho] : fase.titulo,
+    texto: desfecho ? `${texto} ${crise.textos[desfecho]}` : `${texto} A crise continua no próximo mês.`,
+    antes,
+    depois: ativa.gravidade,
+    reacoes,
+    desfecho,
+    saiu,
+  };
+  return m;
+}
+
+export function marcarPosse(original: Mandato): Mandato {
+  return { ...original, posses: [...(original.posses ?? []), original.mes] };
+}
+
+export function precisaDePosse(m: Mandato) {
+  return (m.mes === 1 || m.mes === 49) && m.fase === "gestao" && !(m.posses ?? []).includes(m.mes) && m.acoes === ACOES_POR_MES;
 }
 
 export function responderEvento(original: Mandato, opcao: number): Mandato {

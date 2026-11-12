@@ -3,7 +3,8 @@
 import { lerConfig } from "./config";
 import { audio, ruido } from "./sons";
 
-export type NomeTrilha = "abertura" | "campanha" | "mandato" | "crise";
+export type NomeTrilha = "abertura" | "campanha" | "mandato" | "crise" | "silencio";
+type Tocavel = Exclude<NomeTrilha, "silencio">;
 
 // Música original do jogo, composta nota por nota e tocada pelo navegador, sem arquivo de áudio.
 type Nota = [passo: number, altura: number, duracao: number];
@@ -49,7 +50,7 @@ const GABINETE: Nota[][] = [
 const HARMONIA_GABINETE = [AM, F, C, E, AM, DM, F, E];
 const RAIZES_CRISE = [50, 50, 46, 45, 50, 50, 51, 45];
 
-const TRILHAS: Record<NomeTrilha, { bpm: number; compassos: number }> = {
+const TRILHAS: Record<Tocavel, { bpm: number; compassos: number }> = {
   abertura: { bpm: 76, compassos: 16 },
   campanha: { bpm: 118, compassos: 16 },
   mandato: { bpm: 88, compassos: 16 },
@@ -156,7 +157,7 @@ function chiado(s: Saida, t: number, corte: number, duracao: number, volume: num
 }
 
 // Agenda um compasso de 16 passos a partir do instante `t`.
-export function tocarCompasso(s: Saida, nome: NomeTrilha, indice: number, volta: number, t: number) {
+export function tocarCompasso(s: Saida, nome: Tocavel, indice: number, volta: number, t: number) {
   const { bpm } = TRILHAS[nome];
   const passo = 60 / bpm / 4;
   const quando = (p: number) => t + p * passo;
@@ -243,7 +244,7 @@ export function criarMestre(ctx: BaseAudioContext) {
 const VOLUME = 0.62;
 const ADIANTADO = 0.6;
 
-type Tocando = { nome: NomeTrilha; barramento: GainNode; saida: Saida; indice: number; volta: number; proximo: number };
+type Tocando = { nome: Tocavel; barramento: GainNode; saida: Saida; indice: number; volta: number; proximo: number };
 
 let pedida: NomeTrilha = "abertura";
 let mestre: GainNode | null = null;
@@ -276,7 +277,7 @@ function soltar(fim: Tocando) {
   window.setTimeout(() => fim.barramento.disconnect(), 4000);
 }
 
-function iniciar(nome: NomeTrilha) {
+function iniciar(nome: Tocavel) {
   const ctx = audio();
   if (!ctx) return;
   if (!mestre) {
@@ -321,6 +322,10 @@ export function atualizarMusica() {
   if (!liberado) return;
   if (lerConfig().musica === "desligada") {
     pararMusica();
+    return;
+  }
+  if (pedida === "silencio") {
+    if (tocando) pararMusica();
     return;
   }
   if (podeTocar() && tocando?.nome !== pedida) iniciar(pedida);

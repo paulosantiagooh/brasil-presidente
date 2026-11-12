@@ -1,4 +1,5 @@
 import { Congresso, MapaDoBrasil } from "@/components/Fundo";
+import { Bandeira } from "@/components/Bandeira";
 import { MenuPrincipal } from "@/components/MenuPrincipal";
 
 const CENARIO = [
@@ -17,7 +18,8 @@ export default function Inicio() {
       </div>
 
       <div className="conteudo">
-        <header className="marca">
+        <header className="cabecalho-inicio">
+          <Bandeira className="bandeira-inicio" />
           <p className="sobretitulo">Eleição presidencial de 2026</p>
           <h1 className="logotipo">
             <span className="logotipo-pais">Brasil:</span>{" "}

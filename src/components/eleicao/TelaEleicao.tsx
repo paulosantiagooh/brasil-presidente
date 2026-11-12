@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { tocar } from "@/lib/sons";
 import { CenaAnimada } from "../cenas/CenaAnimada";
 import { executarAcao, type Campanha } from "@/lib/campanha";
-import type { Candidato } from "@/lib/candidato";
+import { extremosOpostos, type Candidato } from "@/lib/candidato";
 import {
   apoiosRestantes,
   comecarSegundoTurno,
@@ -39,7 +39,7 @@ type Props = {
   candidato: Candidato;
 };
 
-const CORES_CONFETE = ["#2dd4bf", "#f2c14e", "#e8f3f1", "#6f8cf5"];
+const CORES_CONFETE = ["#009c3b", "#ffdf00", "#ffffff", "#3d7be0"];
 
 function Confete() {
   return (
@@ -158,12 +158,13 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
         <ul className="lista-acoes">
           {eliminados(eleicao).map((indice) => {
             const apoio = eleicao.apoios.find((a) => a.indice === indice);
+            const oposto = extremosOpostos(candidato.partidoSigla, nomes[indice].sigla);
             return (
               <li key={indice}>
                 <button
                   type="button"
                   className="acao"
-                  disabled={Boolean(apoio) || pedidos === 0}
+                  disabled={Boolean(apoio) || pedidos === 0 || oposto}
                   onClick={() => atualizar((e) => pedirApoio(e, campanha, candidato, indice))}
                 >
                   <span className="cartao-topo">
@@ -171,7 +172,9 @@ export function TelaEleicao({ partida, eleicao, campanha, candidato }: Props) {
                     <span className="dado">{nomes[indice].sigla}</span>
                   </span>
                   <span className="ajuda">
-                    {apoio
+                    {oposto
+                      ? "Extremo oposto: não negocia apoio com você."
+                      : apoio
                       ? apoio.aceito
                         ? "Na simulação, aceitou apoiar você."
                         : "Na simulação, ficou neutro."

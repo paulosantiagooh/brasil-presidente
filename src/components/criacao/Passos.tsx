@@ -10,7 +10,10 @@ import {
   HISTORICOS,
   IDADE_MINIMA,
   IDEOLOGIAS,
+  extremosOpostos,
+  NOME_POLO,
   NOME_TAMANHO,
+  poloDoPartido,
   PARTIDOS,
   partidoDoCandidato,
   posicaoDasIdeologias,
@@ -312,6 +315,12 @@ export function PassoVice({ c, mudar }: Props) {
         Escolha entre governadores, nomes nacionais e todos os deputados e senadores em exercício. Nomes
         reais em um cenário hipotético: nenhuma dessas pessoas participa do jogo nem aprovou esta simulação.
       </p>
+      {poloDoPartido(c.partidoSigla) !== "centro" && (
+        <p className="ajuda">
+          O seu partido é de {NOME_POLO[poloDoPartido(c.partidoSigla)]}: nomes do extremo oposto ficam de fora. Partidos de
+          centro e do centrão podem fazer aliança com você.
+        </p>
+      )}
       {vice && (
         <p className="alerta">
           Vice escolhido: <strong>{vice.nome}</strong> ({vice.sigla} · {vice.uf})
@@ -319,7 +328,7 @@ export function PassoVice({ c, mudar }: Props) {
         </p>
       )}
       <BuscaPessoa
-        pessoas={POLITICOS.filter((p) => semAcento(p.nome) !== semAcento(c.nomeUrna))}
+        pessoas={POLITICOS.filter((p) => semAcento(p.nome) !== semAcento(c.nomeUrna) && !extremosOpostos(c.partidoSigla, p.sigla))}
         selecionado={c.viceId}
         aoEscolher={(pessoa) => mudar({ viceId: pessoa.id })}
       />

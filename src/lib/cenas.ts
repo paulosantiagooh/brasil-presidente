@@ -34,7 +34,10 @@ export type TipoCena =
   | "barragem"
   | "fronteira"
   | "tanques"
-  | "lei";
+  | "lei"
+  | "desfile"
+  | "faixa"
+  | "hasteamento";
 
 // Cada cena dura 5 segundos e é desenhada pelo jogo: só silhuetas anônimas, sem imagem de ninguém.
 export const CENAS: Record<TipoCena, { legenda: string; som: Ambiente | null }> = {
@@ -72,6 +75,9 @@ export const CENAS: Record<TipoCena, { legenda: string; som: Ambiente | null }> 
   fronteira: { legenda: "Alerta na fronteira", som: "batidas" },
   tanques: { legenda: "Blindados nas ruas", som: "motor" },
   lei: { legenda: "Sanciona ou veta?", som: "batidas" },
+  desfile: { legenda: "O desfile em carro aberto", som: "aplausos" },
+  faixa: { legenda: "A passagem da faixa presidencial", som: "aplausos" },
+  hasteamento: { legenda: "A Bandeira sobe no mastro", som: null },
 };
 
 const POR_ID: Record<string, TipoCena> = {

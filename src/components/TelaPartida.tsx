@@ -16,8 +16,9 @@ import { BotaoMusica, Trilha } from "./Trilha";
 function trilhaDaPartida(partida: Partida): NomeTrilha {
   if (partida.etapa === "campanha" || partida.etapa === "eleicao") return "campanha";
   if (partida.etapa !== "mandato" || !partida.mandato) return "abertura";
-  const { pendencia, drama, fase } = partida.mandato;
+  const { pendencia, drama, fase, crise } = partida.mandato;
   if (fase === "fim") return "abertura";
+  if (crise || pendencia?.tipo === "crise" || pendencia?.tipo === "crise-resultado") return "crise";
   const urgente = pendencia?.tipo === "impeachment" || pendencia?.tipo === "golpe" || (pendencia?.tipo === "carta" && Boolean(pendencia.carta.urgente));
   return urgente || drama.pressao >= 60 ? "crise" : "mandato";
 }

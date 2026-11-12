@@ -55,6 +55,29 @@ export const PARTIDOS: Partido[] = [
   { sigla: "UP", nome: "Unidade Popular", numero: 80, tamanho: "pequeno", economia: 5, costumes: 15 },
 ];
 
+// Polos do jogo. Esquerda e direita mais duras não se aliam; o centro e o centrão negociam com os dois lados.
+export type Polo = "esquerda" | "direita" | "centro";
+
+const POLO_ESQUERDA = ["PT", "PSOL", "PCdoB", "PSTU", "PCB", "PCO", "UP", "REDE", "PV"];
+const POLO_DIREITA = ["PL", "NOVO", "MISSÃO", "PRTB"];
+
+export function poloDoPartido(sigla?: string | null): Polo {
+  if (sigla && POLO_ESQUERDA.includes(sigla)) return "esquerda";
+  if (sigla && POLO_DIREITA.includes(sigla)) return "direita";
+  return "centro";
+}
+
+export const NOME_POLO: Record<Polo, string> = { esquerda: "esquerda", direita: "direita", centro: "centro" };
+
+// Extremos opostos: um polo de esquerda e um de direita. Ninguém do centro entra nessa regra.
+export function extremosOpostos(a?: string | null, b?: string | null) {
+  const pa = poloDoPartido(a);
+  const pb = poloDoPartido(b);
+  return pa !== "centro" && pb !== "centro" && pa !== pb;
+}
+
+export const MOTIVO_EXTREMOS = "Extremos opostos não dividem chapa nem governo.";
+
 export const NOME_TAMANHO: Record<Tamanho, string> = {
   grande: "Partido grande",
   medio: "Partido médio",
@@ -338,6 +361,7 @@ export function errosDoPasso(c: Candidato, passo: number): string[] {
   }
   if (passo === 4) {
     if (!c.viceId) erros.push("Escolha quem será vice.");
+    if (extremosOpostos(c.partidoSigla, viceDoCandidato(c)?.sigla)) erros.push(`${MOTIVO_EXTREMOS} Escolha outro nome para vice.`);
     if (c.viceId === VICE_PROPRIO && c.viceNome.trim().split(/\s+/).length < 2) {
       erros.push("Escreva o nome completo de quem será vice.");
     }

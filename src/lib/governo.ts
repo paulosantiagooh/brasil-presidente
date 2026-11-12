@@ -1,5 +1,5 @@
 import type { Campanha } from "./campanha";
-import { dadosDoVice, PARTIDOS, partidoDoCandidato, siglaDoVice, type Candidato } from "./candidato";
+import { dadosDoVice, extremosOpostos, PARTIDOS, partidoDoCandidato, siglaDoVice, type Candidato } from "./candidato";
 import { percentualValido, totalDoTurno, type Eleicao } from "./eleicao";
 import { politicoPorId, POLITICOS, type Pessoa, type TipoPessoa } from "./pessoas";
 
@@ -312,7 +312,12 @@ export function candidatosAoMinisterio(
   );
   const vice = dadosDoVice(c)?.nome;
   const politicos = POLITICOS.filter(
-    (p) => (trocar || !ocupados.has(p.id)) && p.nome !== vice && p.nome !== c.nomeUrna && !nomesFora.includes(p.nome),
+    (p) =>
+      (trocar || !ocupados.has(p.id)) &&
+      p.nome !== vice &&
+      p.nome !== c.nomeUrna &&
+      !nomesFora.includes(p.nome) &&
+      !extremosOpostos(c.partidoSigla, p.sigla),
   );
   return [tecnicoDe(ministerio), ...politicos];
 }
