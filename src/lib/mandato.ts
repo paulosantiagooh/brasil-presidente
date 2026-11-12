@@ -162,6 +162,7 @@ export type Pendencia =
   | { tipo: "stf"; decisao: DecisaoDoSTF }
   | { tipo: "golpe"; passo: number; chance: number }
   | { tipo: "crise" }
+  | { tipo: "data-civica"; data: "independencia" | "bandeira" }
   | { tipo: "meta-ministro"; ministerio: string; texto: string }
   | { tipo: "crise-resultado"; titulo: string; texto: string; antes: number; depois: number; reacoes: { quem: string; texto: string }[]; desfecho: Desfecho | null; saiu: string | null }
   | { tipo: "resultado"; sobretitulo: string; titulo: string; texto: string; cena: TipoCena; placar?: { rotulo: string; sim: number; nao: number }[] };
@@ -1296,6 +1297,13 @@ export function encerrarMes(original: Mandato, contexto: Contexto): Mandato {
     m.fase = "pendencia";
     return m;
   }
+  // Datas cívicas: 7 de Setembro e Dia da Bandeira, uma vez por ano.
+  const mesDoAno = ((m.mes - 1) % 12) + 1;
+  if (mesDoAno === 9 || mesDoAno === 11) {
+    m.pendencia = { tipo: "data-civica", data: mesDoAno === 9 ? "independencia" : "bandeira" };
+    m.fase = "pendencia";
+    return m;
+  }
   // O Congresso também legisla: de vez em quando, um projeto chega para sanção ou veto.
   const vistosDoCongresso = m.projetosDoCongresso ?? [];
   const projetosNovos = PROJETOS_DO_CONGRESSO.filter((p) => !vistosDoCongresso.includes(p.id));
@@ -1548,6 +1556,41 @@ export function resolverMetaPerdida(original: Mandato, escolha: "manter" | "demi
     aplicar(m, { aprovacao: 1, congresso: -2 });
     noticiar(m, `Demissão: o presidente troca o comando de ${pasta}.`);
   }
+  m.pendencia = null;
+  m.fase = "gestao";
+  return m;
+}
+
+export const DATAS_CIVICAS: Record<"independencia" | "bandeira", { titulo: string; texto: string; cena: TipoCena; opcoes: { texto: string; efeito: Efeito }[] }> = {
+  independencia: {
+    titulo: "7 de Setembro",
+    texto: "Dia da Independência. Tropas, escolas e bandas desfilam na Esplanada, e o país espera o presidente.",
+    cena: "desfile" as TipoCena,
+    opcoes: [
+      { texto: "Desfilar em carro aberto e acenar para o povo.", efeito: { aprovacao: 1.5, pressao: 2 } },
+      { texto: "Assistir da tribuna e fazer um discurso curto de união.", efeito: { aprovacao: 0.5, pressao: -3, "s.confianca": 1 } },
+      { texto: "Mandar o vice no seu lugar.", efeito: { aprovacao: -1 } },
+    ],
+  },
+  bandeira: {
+    titulo: "Dia da Bandeira",
+    texto: "19 de novembro. A Bandeira é hasteada em todo o país, e o Planalto prepara a cerimônia.",
+    cena: "hasteamento" as TipoCena,
+    opcoes: [
+      { texto: "Hastear a Bandeira ao lado de estudantes de escolas públicas.", efeito: { aprovacao: 0.8, "s.educacao": 0.5 } },
+      { texto: "Fazer uma cerimônia simples no Planalto.", efeito: { "s.confianca": 0.5 } },
+      { texto: "Enviar um ministro em seu lugar.", efeito: { aprovacao: -0.5 } },
+    ],
+  },
+};
+
+export function responderDataCivica(original: Mandato, opcao: number): Mandato {
+  const m = structuredClone(original);
+  if (m.pendencia?.tipo !== "data-civica") return m;
+  const data = DATAS_CIVICAS[m.pendencia.data];
+  const escolha = data.opcoes[opcao] ?? data.opcoes[0];
+  aplicar(m, escolha.efeito);
+  noticiar(m, `${data.titulo}: ${escolha.texto.charAt(0).toLowerCase()}${escolha.texto.slice(1)}`);
   m.pendencia = null;
   m.fase = "gestao";
   return m;

@@ -2444,6 +2444,25 @@ label.botao:has(+ .arquivo:focus-visible) {
   background: var(--turquesa);
 }
 
+.hino-player {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--amarelo-bandeira);
+  border-radius: 8px;
+  background: var(--superficie);
+}
+
+.hino-player-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hino-player .barra span {
+  background: var(--amarelo-bandeira);
+}
+
 .posse {
   display: grid;
   gap: 0.9rem;

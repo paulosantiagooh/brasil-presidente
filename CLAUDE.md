@@ -22,7 +22,7 @@ O documento do projeto é `docs/PROJETO.md`: leia antes de começar uma etapa no
 - O golpe de Estado é crime no Brasil (Código Penal, art. 359-M): no jogo, quase sempre fracassa, encerra a partida nos dois casos e nunca aparece quando o jogador é uma pessoa real.
 - Decisões com tempo (crises urgentes e debate) têm no mínimo 60 segundos.
 - A Bandeira Nacional segue a Lei 5.700/1971: sempre inteira, nas proporções e cores certas, com o lema e as 27 estrelas (`src/lib/bandeira.ts`). Nunca mude a forma, as cores ou o dístico.
-- O Hino Nacional não é tocado pelo jogo: a lei proíbe arranjo instrumental sem autorização do presidente da República e exige execução integral. Na posse, a letra aparece e a música do jogo fica em silêncio.
+- Os hinos ficam em `public/audio/`, em gravações escolhidas pelo dono do projeto (`src/lib/hinos.ts`). O jogo nunca cria arranjo próprio nem corta o Hino Nacional: na posse ele toca inteiro, e só dá para continuar quando termina. Hino à Bandeira e Hino da Independência tocam nas datas cívicas. Enquanto um hino toca, a trilha do jogo fica em silêncio.
 - Extremos opostos (polos de esquerda e de direita em `poloDoPartido`, `src/lib/candidato.ts`) não dividem chapa, governo, cargos nem apoio. Centro e centrão negociam com os dois lados.
 - O gabinete de crise (`src/lib/crises.ts`) usa só os assessores fictícios. Ministros reais nunca recebem falas inventadas.
 - Metas de ministros (`src/lib/metas-ministros.ts`) são cobradas por pasta. Resultado é da simulação, nunca nota pessoal de quem ocupa o cargo.

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { TipoCena } from "@/lib/cenas";
 import { pedirTrilha } from "@/lib/musica";
 import { Bandeira } from "../Bandeira";
+import { Hino } from "../Hino";
 import { CenaAnimada } from "../cenas/CenaAnimada";
 
 type Etapa = { id: string; cena: TipoCena; titulo: string; texto: string };
@@ -22,7 +23,7 @@ export function Posse({ nome, ano, reeleito, aoTerminar }: { nome: string; ano: 
       id: "hino",
       cena: "hasteamento",
       titulo: "Hino Nacional",
-      texto: "Todos de pé, em silêncio. A Bandeira sobe no mastro diante do Palácio do Planalto.",
+      texto: "Todos de pé, em silêncio. A Bandeira sobe no mastro diante do Palácio do Planalto, e o Hino Nacional é tocado inteiro, como manda a lei.",
     },
     ...(reeleito
       ? []
@@ -44,6 +45,7 @@ export function Posse({ nome, ano, reeleito, aoTerminar }: { nome: string; ano: 
     },
   ];
   const [indice, setIndice] = useState(0);
+  const [hinoTocando, setHinoTocando] = useState(false);
   const etapa = etapas[indice];
   const ultima = indice === etapas.length - 1;
 
@@ -82,12 +84,10 @@ export function Posse({ nome, ano, reeleito, aoTerminar }: { nome: string; ano: 
             <br />
             Brilhou no céu da Pátria nesse instante.
           </p>
-          <footer className="ajuda">
-            Hino Nacional Brasileiro, primeira estrofe. Letra de Osório Duque Estrada, música de Francisco Manuel
-            da Silva.
-          </footer>
+          <footer className="ajuda">Primeira estrofe.</footer>
         </blockquote>
       )}
+      {etapa.id === "hino" && <Hino id="nacional" aoMudar={setHinoTocando} />}
       {ultima && <p className="chamada-posse">{nome}, presidente da República Federativa do Brasil.</p>}
       <footer className="rodape-passo">
         {indice > 0 ? (
@@ -102,13 +102,14 @@ export function Posse({ nome, ano, reeleito, aoTerminar }: { nome: string; ano: 
         <button
           type="button"
           className="botao botao-destaque"
+          disabled={etapa.id === "hino" && hinoTocando}
           onClick={() => {
             if (ultima) aoTerminar();
             else setIndice(indice + 1);
             window.scrollTo({ top: 0 });
           }}
         >
-          {ultima ? "Começar a governar" : "Continuar"}
+          {ultima ? "Começar a governar" : etapa.id === "hino" && hinoTocando ? "Aguarde o fim do Hino" : "Continuar"}
         </button>
       </footer>
     </section>

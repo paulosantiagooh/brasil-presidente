@@ -22,6 +22,8 @@ import {
   promessasDoMandato,
   responderCarta,
   responderEvento,
+  responderDataCivica,
+  DATAS_CIVICAS,
   resolverMetaPerdida,
   criseAtual,
   marcarPosse,
@@ -63,6 +65,8 @@ import { PASSOS_DO_GOLPE } from "@/lib/poderes";
 import { NOME_DESFECHO } from "@/lib/crises";
 import { GabineteDeCrise, ResultadoDaCrise } from "./GabineteDeCrise";
 import { Posse } from "./Posse";
+import { Bandeira } from "../Bandeira";
+import { Hino } from "../Hino";
 import { CartaDrama, RespostaCarta } from "./CartaDrama";
 import { TelaVotacao } from "./Votacao";
 
@@ -479,6 +483,30 @@ function TelaPendencia(props: {
           >
             Demitir e indicar outro nome.
           </button>
+        </div>
+      </section>
+    );
+  }
+  if (pendencia.tipo === "data-civica") {
+    const data = DATAS_CIVICAS[pendencia.data];
+    return (
+      <section className="boletim" aria-labelledby="titulo-data">
+        <CenaAnimada cena={data.cena} legenda={data.titulo} chave={`data-${mandato.mes}`} />
+        <div className="posse-topo">
+          <Bandeira className="posse-bandeira" />
+          <p className="sobretitulo">{nomeDoMes(mandato.mes)} · Data cívica</p>
+        </div>
+        <h1 id="titulo-data" className="titulo-tela">
+          {data.titulo}
+        </h1>
+        <p className="texto-tela">{data.texto}</p>
+        <Hino id={pendencia.data} />
+        <div className="respostas espaco-topo">
+          {data.opcoes.map((opcao, indice) => (
+            <button key={opcao.texto} type="button" className="resposta" onClick={() => atualizar((m) => responderDataCivica(m, indice))}>
+              {opcao.texto}
+            </button>
+          ))}
         </div>
       </section>
     );

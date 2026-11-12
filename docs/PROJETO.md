@@ -329,3 +329,5 @@ Depois construiremos a criação do candidato e conectaremos os sistemas de camp
 - O Hino Nacional não é tocado: a lei exige execução integral e proíbe arranjo instrumental sem autorização.
 - Extremos opostos não podem ser vice, ministro, indicado nem dar apoio no segundo turno. Centro e centrão ficam liberados.
 - Metas por ministério: dar a meta é de graça, cobrar gasta uma ação, e meta perdida permite manter ou demitir.
+
+- Hinos: o dono do projeto forneceu as gravações do Hino Nacional, do Hino à Bandeira (Banda Sinfônica do Corpo de Fuzileiros Navais) e do Hino da Independência, guardadas em `public/audio/`. O Hino Nacional toca inteiro na posse. Os outros dois tocam no 7 de Setembro e no Dia da Bandeira, que viraram datas cívicas anuais.
