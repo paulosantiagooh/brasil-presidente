@@ -1,0 +1,8 @@
+:HL["/brasil-presidente/_next/static/chunks/2vbzx4585uot1.css","style"]
+:HL["/brasil-presidente/_next/static/media/066ba92c8fc1c222-s.p.3lj349bs9hfu1.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/brasil-presidente/_next/static/media/2da4f60ed3b00b11-s.p.0xxdg0o7uh536.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/brasil-presidente/_next/static/media/48eea41d8317494f-s.p.0wiir8udbzjvx.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/brasil-presidente/_next/static/media/73c8302d2fdfe340-s.p.30xqm3yldpj47.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/brasil-presidente/_next/static/media/9f5be66613d9c872-s.p.27korwsf9c79u.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+1:[["children",{"s":"__PAGE__","h":160}]]
+0:{"b":"ajy1RXZBxdM7AEp0SMdZD","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
