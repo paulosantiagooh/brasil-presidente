@@ -1629,6 +1629,88 @@ label.botao:has(+ .arquivo:focus-visible) {
   font-size: 1.6rem;
 }
 
+/* Painel presidencial: mesa com Bandeira, progresso do mandato e tendência de cada indicador. */
+.mesa-presidente {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--linha-forte);
+  border-top: 3px solid var(--amarelo-bandeira);
+  border-radius: 10px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgb(0 156 59 / 0.18), transparent 60%),
+    linear-gradient(180deg, var(--superficie-alta), var(--superficie));
+}
+
+.mesa-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mesa-bandeira {
+  flex: none;
+  width: 42px;
+  height: auto;
+  border-radius: 2px;
+}
+
+.mesa-progresso {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.mesa-progresso .barra span {
+  background: linear-gradient(90deg, var(--verde-bandeira), var(--amarelo-bandeira));
+}
+
+.placar-mandato > div {
+  transition: transform 0.2s;
+}
+
+.placar-mandato > div:hover {
+  transform: translateY(-2px);
+}
+
+.tendencia {
+  font-family: var(--fonte-dado), monospace;
+  font-size: 0.72rem;
+}
+
+.tendencia.boa {
+  color: var(--turquesa);
+}
+
+.tendencia.ruim {
+  color: var(--perigo);
+}
+
+.pips {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  min-height: 2rem;
+}
+
+.pip {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid var(--amarelo-bandeira);
+  border-radius: 50%;
+}
+
+.pip.cheio {
+  background: var(--amarelo-bandeira);
+}
+
+.campanha > .abas {
+  position: sticky;
+  top: 4px;
+  z-index: 5;
+  background: var(--fundo);
+}
+
 .abas {
   scrollbar-width: thin;
 }

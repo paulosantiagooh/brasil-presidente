@@ -857,51 +857,70 @@ export function TelaMandato({ partida, mandato, governo, campanha, candidato }: 
 
   return (
     <section className="campanha" aria-labelledby="titulo-mandato">
-      <p className="sobretitulo">
-        Mês {mandato.mes} de {mandato.limite} · Simulação
-      </p>
-      <div className="topo-mandato">
-        <h1 id="titulo-mandato" className="titulo-tela">
-          {nomeDoMes(mandato.mes)}
-        </h1>
-        <button
-          type="button"
-          className={mandato.acoes === 0 ? "botao botao-destaque" : "botao"}
-          onClick={() => {
-            atualizar((m) => encerrarMes(m, contexto));
-            window.scrollTo({ top: 0 });
-          }}
-        >
-          {mandato.mes === mandato.limite ? "Encerrar o mandato" : "Encerrar o mês"}
-        </button>
-      </div>
+      <header className="mesa-presidente">
+        <div className="mesa-topo">
+          <Bandeira className="mesa-bandeira" />
+          <p className="sobretitulo">Palácio do Planalto · Gabinete presidencial · Simulação</p>
+        </div>
+        <div className="topo-mandato">
+          <h1 id="titulo-mandato" className="titulo-tela">
+            {nomeDoMes(mandato.mes)}
+          </h1>
+          <button
+            type="button"
+            className={mandato.acoes === 0 ? "botao botao-destaque" : "botao"}
+            onClick={() => {
+              atualizar((m) => encerrarMes(m, contexto));
+              window.scrollTo({ top: 0 });
+            }}
+          >
+            {mandato.mes === mandato.limite ? "Encerrar o mandato" : "Encerrar o mês"}
+          </button>
+        </div>
+        <div className="mesa-progresso">
+          <span className="rotulo">
+            Mês {mandato.mes} de {mandato.limite} · ano {Math.ceil(mandato.mes / 12)} de {Math.ceil(mandato.limite / 12)}
+          </span>
+          <span className="barra" aria-hidden="true">
+            <span style={{ width: `${(mandato.mes / mandato.limite) * 100}%` }} />
+          </span>
+        </div>
+      </header>
 
       <dl className="placar placar-mandato">
-        <div>
-          <dt>Aprovação</dt>
-          <dd>{numero(mandato.aprovacao, 0)}%</dd>
-        </div>
-        <div>
-          <dt>PIB</dt>
-          <dd>{numero(e.pib)}%</dd>
-        </div>
-        <div>
-          <dt>IPCA</dt>
-          <dd>{numero(e.ipca)}%</dd>
-        </div>
-        <div>
-          <dt>Selic</dt>
-          <dd>{numero(e.selic, 2)}%</dd>
-        </div>
-        <div>
-          <dt>Desemprego</dt>
-          <dd>{numero(e.desemprego)}%</dd>
-        </div>
+        {(
+          [
+            ["Aprovação", `${numero(mandato.aprovacao, 0)}%`, mandato.resumoMes?.aprovacao, false],
+            ["PIB", `${numero(e.pib)}%`, mandato.resumoMes?.pib, false],
+            ["IPCA", `${numero(e.ipca)}%`, mandato.resumoMes?.ipca, true],
+            ["Selic", `${numero(e.selic, 2)}%`, undefined, true],
+            ["Desemprego", `${numero(e.desemprego)}%`, mandato.resumoMes?.desemprego, true],
+          ] as [string, string, number | undefined, boolean][]
+        ).map(([nome, valor, variacao, menorMelhor]) => {
+          const mudou = variacao !== undefined && Math.abs(variacao) >= 0.05;
+          const bom = mudou && (variacao > 0) !== menorMelhor;
+          return (
+            <div key={nome}>
+              <dt>{nome}</dt>
+              <dd>{valor}</dd>
+              {mudou && (
+                <p className={bom ? "tendencia boa" : "tendencia ruim"}>
+                  {variacao > 0 ? "▲" : "▼"} {numero(Math.abs(variacao), nome === "Aprovação" ? 0 : 1)}
+                </p>
+              )}
+            </div>
+          );
+        })}
         <div>
           <dt>Ações</dt>
-          <dd>
-            {mandato.acoes} de {ACOES_POR_MES}
+          <dd className="pips" aria-label={`${mandato.acoes} de ${ACOES_POR_MES} ações`}>
+            {Array.from({ length: ACOES_POR_MES }, (_, i) => (
+              <span key={i} className={i < mandato.acoes ? "pip cheio" : "pip"} />
+            ))}
           </dd>
+          <p>
+            {mandato.acoes} de {ACOES_POR_MES} no mês
+          </p>
         </div>
       </dl>
       <div className={mandato.drama.pressao >= 60 ? "termometro quente" : "termometro"}>
